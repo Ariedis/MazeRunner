@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3 uid="uid://placeholdera"]
+
+[ext_resource type="Script" path="res://scenes/placeholders/PlaceholderA.gd" id="1_pa"]
+
+[node name="PlaceholderA" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_pa")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -60.0
+offset_right = 100.0
+offset_bottom = 60.0
+alignment = 1
+
+[node name="LabelTitle" type="Label" parent="VBoxContainer"]
+text = "Placeholder Scene A"
+horizontal_alignment = 1
+
+[node name="BtnGoToB" type="Button" parent="VBoxContainer"]
+text = "Go to B"
+
+[node name="BtnMainMenu" type="Button" parent="VBoxContainer"]
+text = "Main Menu"
