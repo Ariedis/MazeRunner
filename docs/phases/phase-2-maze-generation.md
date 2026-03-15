@@ -83,6 +83,9 @@ Implement procedural maze generation with three map sizes and render it using Ti
   - **Modified in Phase 3:** added `_build_wall_collisions()` which creates a `StaticBody2D`
     with one `CollisionShape2D` per remaining wall tile. The TileSet is now visual-only
     (no physics layers). See Phase 3 implementation details for rationale.
+  - **Modified in Phase 4:** added `world_to_grid(world_pos)` — inverse of `get_world_position`.
+    Used by `GameScene._process()` to map the player's pixel position back to a maze grid cell
+    for fog-of-war reveal checks.
 
 #### Game Scene (`scenes/game/`)
 - **`GameScene.tscn`** — Root `Node2D` with a `CanvasLayer` UI containing `LabelSeed`,

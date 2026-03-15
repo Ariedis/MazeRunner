@@ -67,5 +67,11 @@ func _build_wall_collisions() -> void:
 func get_world_position(grid_pos: Vector2i) -> Vector2:
 	return Vector2((2 * grid_pos.x + 1) * _tile_size, (2 * grid_pos.y + 1) * _tile_size)
 
+func world_to_grid(world_pos: Vector2) -> Vector2i:
+	return Vector2i(
+		int(world_pos.x / _tile_size - 1.0) / 2,
+		int(world_pos.y / _tile_size - 1.0) / 2
+	)
+
 func get_tilemap() -> TileMap:
 	return _tile_map

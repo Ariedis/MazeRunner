@@ -3,6 +3,9 @@ extends Node2D
 var _maze_data: MazeData
 var _renderer: MazeRenderer
 var _player: Player
+var _fog: FogOfWar
+var _fog_renderer: FogRenderer
+var _last_grid_cell := Vector2i(-1, -1)
 
 
 func _ready() -> void:
@@ -28,6 +31,12 @@ func _ready() -> void:
 	_player.setup(tile_size)
 	_player.position = _renderer.get_world_position(_maze_data.player_spawn)
 
+	_fog = FogOfWar.new()
+	_fog_renderer = FogRenderer.new()
+	_fog_renderer.name = "FogRenderer"
+	add_child(_fog_renderer)
+	_fog_renderer.initialize(_maze_data.width, _maze_data.height, tile_size)
+
 	var cam := Camera2D.new()
 	cam.name = "Camera2D"
 	cam.enabled = true
@@ -40,6 +49,17 @@ func _ready() -> void:
 
 	SignalBus.player_energy_changed.connect(_on_player_energy_changed)
 	GameState.current_state = Enums.GameState.IN_GAME
+
+
+func _process(_delta: float) -> void:
+	var cell := _renderer.world_to_grid(_player.global_position)
+	if cell == _last_grid_cell:
+		return
+	_last_grid_cell = cell
+	var revealed := _fog.reveal(cell, _maze_data.width, _maze_data.height)
+	if revealed.size() > 0:
+		_fog_renderer.reveal_cells(revealed)
+		GameState.player["explored_cells"] = _fog.get_explored_array()
 
 
 func _on_player_energy_changed(value: float) -> void:

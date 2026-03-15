@@ -7,6 +7,7 @@ const TEST_CLASSES: Array[String] = [
 	"res://tests/test_scene_manager.gd",
 	"res://tests/test_maze_generator.gd",
 	"res://tests/test_player_stats.gd",
+	"res://tests/test_fog_of_war.gd",
 ]
 
 

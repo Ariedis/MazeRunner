@@ -13,8 +13,8 @@
 |-------|------|--------|-------|
 | 1 | Project Setup & Core Infrastructure | COMPLETE | [spec](phases/phase-1-project-setup.md) |
 | 2 | Maze Generation & Rendering | COMPLETE | [spec](phases/phase-2-maze-generation.md) |
-| 3 | Player Movement & Mechanics | NOT STARTED | [spec](phases/phase-3-player-mechanics.md) |
-| 4 | Fog of War & Exploration | NOT STARTED | [spec](phases/phase-4-fog-of-war.md) |
+| 3 | Player Movement & Mechanics | COMPLETE | [spec](phases/phase-3-player-mechanics.md) |
+| 4 | Fog of War & Exploration | COMPLETE | [spec](phases/phase-4-fog-of-war.md) |
 | 5 | Locations & Task System | NOT STARTED | [spec](phases/phase-5-task-system.md) |
 | 6 | Item System & Win Condition | NOT STARTED | [spec](phases/phase-6-item-system.md) |
 | 7 | AI Opponents | NOT STARTED | [spec](phases/phase-7-ai-opponents.md) |
@@ -58,7 +58,7 @@
 - **Rendering:** TileMap-based walls, with tile IDs mapping to wall patterns
 - **AI Navigation:** A* pathfinding on maze graph, with difficulty controlling decision quality
 - **Save Format:** Godot Resource or JSON serialization of full game state
-- **Fog of War:** Shader-based or tile overlay revealing cells as player explores
+- **Fog of War:** Tile overlay (second TileMap filled with opaque black tiles, erased as player explores)
 
 ### Suggested Additional Features (Future)
 - **Power-ups:** Temporary speed boost, energy refill, reveal nearby area
