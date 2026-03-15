@@ -22,6 +22,9 @@ alignment = 1
 text = "MAZE BATTLE"
 horizontal_alignment = 1
 
+[node name="BtnStartGame" type="Button" parent="VBoxContainer"]
+text = "Start Game"
+
 [node name="BtnPlaceholderA" type="Button" parent="VBoxContainer"]
 text = "Placeholder Scene A"
 

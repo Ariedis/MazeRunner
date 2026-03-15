@@ -5,6 +5,7 @@ const TEST_CLASSES: Array[String] = [
 	"res://tests/test_game_state.gd",
 	"res://tests/test_signal_bus.gd",
 	"res://tests/test_scene_manager.gd",
+	"res://tests/test_maze_generator.gd",
 ]
 
 

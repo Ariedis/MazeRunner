@@ -12,7 +12,7 @@
 | Phase | Name | Status | Specs |
 |-------|------|--------|-------|
 | 1 | Project Setup & Core Infrastructure | COMPLETE | [spec](phases/phase-1-project-setup.md) |
-| 2 | Maze Generation & Rendering | NOT STARTED | [spec](phases/phase-2-maze-generation.md) |
+| 2 | Maze Generation & Rendering | COMPLETE | [spec](phases/phase-2-maze-generation.md) |
 | 3 | Player Movement & Mechanics | NOT STARTED | [spec](phases/phase-3-player-mechanics.md) |
 | 4 | Fog of War & Exploration | NOT STARTED | [spec](phases/phase-4-fog-of-war.md) |
 | 5 | Locations & Task System | NOT STARTED | [spec](phases/phase-5-task-system.md) |
