@@ -80,14 +80,20 @@ Implement procedural maze generation with three map sizes and render it using Ti
   - Carve pass: for each maze cell `(cx, cy)`, erase `(2cx+1, 2cy+1)` (floor); if no right
     wall, erase `(2cx+2, 2cy+1)`; if no bottom wall, erase `(2cx+1, 2cy+2)`.
   - `get_world_position(grid_pos)` converts maze grid coords to world pixel coords.
+  - **Modified in Phase 3:** added `_build_wall_collisions()` which creates a `StaticBody2D`
+    with one `CollisionShape2D` per remaining wall tile. The TileSet is now visual-only
+    (no physics layers). See Phase 3 implementation details for rationale.
 
 #### Game Scene (`scenes/game/`)
 - **`GameScene.tscn`** — Root `Node2D` with a `CanvasLayer` UI containing `LabelSeed`,
   `LabelSize`, and `BtnMainMenu`. `MazeRenderer` and `PlayerEntity` are added at runtime.
+  **Modified in Phase 3:** added `LabelEnergy` and `LabelSpeed` UI labels; `BtnMainMenu`
+  repositioned.
 - **`GameScene.gd`** — Reads `map_size` and `seed` from `GameState.config`, generates maze,
   renders it, creates a `Node2D` PlayerEntity with a `Camera2D` child positioned at the player
   spawn. Sets `GameState.current_state = IN_GAME`. `_process()` moves the player with WASD
-  (free-form, no wall collision — that belongs to Phase 3).
+  (free-form, no wall collision — that belongs to Phase 3). **Replaced in Phase 3:** the
+  `Node2D` PlayerEntity and `_process` movement loop were replaced with `Player.tscn`.
 
 #### Tests (`tests/`)
 - **`test_maze_generator.gd`** — 22 assertions across: generation without error (3), full
