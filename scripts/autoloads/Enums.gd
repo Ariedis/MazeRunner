@@ -1,5 +1,11 @@
 extends Node
 
+enum ItemType {
+	PLAYER_ITEM = 0,
+	OPPONENT_ITEM = 1,
+	SIZE_INCREASER = 2
+}
+
 enum GameState {
 	MENU = 0,
 	CHARACTER_SELECT,
