@@ -9,9 +9,9 @@ Implement fog of war so players only see explored areas of the maze. Locations a
 - [x] Implement fog of war overlay (tile overlay via FogRenderer)
 - [x] Track explored cells per player (FogOfWar.explored Dictionary)
 - [x] Reveal cells as player moves through them (radius-based, default radius 2)
-- [ ] Location markers hidden under fog, revealed when player reaches the cell
-- [ ] Exit hidden under fog, revealed when player reaches it
-- [ ] AI opponents are only visible when in player's explored area
+- [x] Location markers hidden under fog, revealed when player reaches the cell *(marker layer added before FogRenderer in Phase 5 — fog covers via draw order)*
+- [x] Exit hidden under fog, revealed when player reaches it *(exit marker added before FogRenderer in Phase 6)*
+- [ ] AI opponents are only visible when in player's explored area *(Phase 7)*
 - [x] Ensure fog works correctly at all three map sizes
 
 ## Dependencies
@@ -24,15 +24,15 @@ Implement fog of war so players only see explored areas of the maze. Locations a
 ## Deliverables
 - [x] Maze starts fully fogged except player's starting area
 - [x] Fog clears as player explores
-- [ ] Locations and exit only visible when reached (future phases)
-- [ ] AI opponents visible only in explored area (future phases)
+- [x] Locations and exit only visible when reached *(via scene-tree draw order — implemented in Phases 5 & 6)*
+- [ ] AI opponents visible only in explored area *(Phase 7)*
 
 ## Testing Criteria
 - [x] Maze starts fogged — unexplored areas not visible
 - [x] Moving through corridors reveals cells permanently
-- [ ] Locations appear as placeholder until player reaches them
-- [ ] Exit is not visible until player discovers it
-- [ ] AI opponents hidden in unexplored fog
+- [x] Locations appear as yellow octagon markers, hidden until player reaches them *(Phase 5)*
+- [x] Exit is not visible until player discovers it *(Phase 6)*
+- [ ] AI opponents hidden in unexplored fog *(Phase 7)*
 - [x] Performance acceptable at Large map size
 - [ ] Fog state preserved during save/load (Phase 10)
 

@@ -54,11 +54,15 @@
 ## Architecture Notes
 
 ### Key Design Decisions
-- **Maze Algorithm:** Recursive backtracker (DFS) — produces good mazes with single solution paths, easy to implement in Godot 4
-- **Rendering:** TileMap-based walls, with tile IDs mapping to wall patterns
-- **AI Navigation:** A* pathfinding on maze graph, with difficulty controlling decision quality
-- **Save Format:** Godot Resource or JSON serialization of full game state
-- **Fog of War:** Tile overlay (second TileMap filled with opaque black tiles, erased as player explores)
+- **Maze Algorithm:** Recursive backtracker (DFS), implemented iteratively (no recursion limit) — produces good mazes with single solution paths
+- **Rendering:** TileMap-based corridor-grid expansion — `(2W+1)×(2H+1)` tile grid encodes cells and passages, filled then carved. Programmatic `ImageTexture` TileSet (no external art assets in Phases 1–6)
+- **Wall Collision:** `StaticBody2D` with one `CollisionShape2D` per wall tile — programmatic TileSet physics layers proved unreliable in Godot 4 at runtime; explicit StaticBody2D uses only standard 2D physics. All collision shapes share a single `RectangleShape2D` instance
+- **Player Motion:** `MOTION_MODE_FLOATING` on `CharacterBody2D` — avoids platformer-style floor-snapping in a top-down view
+- **Fog of War:** Two-TileMap approach: `FogRenderer` adds a second black-tiled TileMap as a scene child *after* location/exit marker layers, so the draw order naturally hides markers until fog is cleared. Fog state stored as `Dictionary` (Vector2i → true) for O(1) lookup; only newly-revealed cells passed to the renderer each frame
+- **AI Navigation:** A* pathfinding on maze graph, with difficulty controlling decision quality *(Phase 7)*
+- **Save Format:** JSON serialization of full game state *(Phase 10)*
+- **Code-Driven UI (Phases 5–6):** `TaskOverlay` and `ResultsScreen` are built entirely in GDScript `_ready()` with no `.tscn` files — reduces scene-file maintenance during mid-game phases. Proper UI with theming deferred to Phase 9
+- **Scene Management:** Container-swap pattern — all scenes load into a `SceneContainer` node inside `Main.tscn`; autoloads (Enums → SignalBus → GameState → SceneManager) remain alive across every transition
 
 ### Suggested Additional Features (Future)
 - **Power-ups:** Temporary speed boost, energy refill, reveal nearby area
