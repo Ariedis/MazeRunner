@@ -59,7 +59,7 @@
 - **Wall Collision:** `StaticBody2D` with one `CollisionShape2D` per wall tile — programmatic TileSet physics layers proved unreliable in Godot 4 at runtime; explicit StaticBody2D uses only standard 2D physics. All collision shapes share a single `RectangleShape2D` instance
 - **Player Motion:** `MOTION_MODE_FLOATING` on `CharacterBody2D` — avoids platformer-style floor-snapping in a top-down view
 - **Fog of War:** Two-TileMap approach: `FogRenderer` adds a second black-tiled TileMap as a scene child *after* location/exit marker layers, so the draw order naturally hides markers until fog is cleared. Fog state stored as `Dictionary` (Vector2i → true) for O(1) lookup; only newly-revealed cells passed to the renderer each frame
-- **AI Navigation:** A* pathfinding on maze graph, with difficulty controlling decision quality *(Phase 7)*
+- **AI Navigation:** A* pathfinding on maze graph; `AIBrain` state machine (EXPLORE/GO_TO_LOC/DO_TASK/GO_TO_EXIT/RESTING) with difficulty controlling exploration strategy, movement speed (0.8×/1.0×/1.2×), task wait (1.5×/1.0×/0.7×), and energy rest thresholds (40→80 / 20→50 / 5→30). Hard AI has full omniscience (all locations + exit known from start). Easy/Medium discover locations and exit by physical contact only.
 - **Save Format:** JSON serialization of full game state *(Phase 10)*
 - **Code-Driven UI (Phases 5–6):** `TaskOverlay` and `ResultsScreen` are built entirely in GDScript `_ready()` with no `.tscn` files — reduces scene-file maintenance during mid-game phases. Proper UI with theming deferred to Phase 9
 - **Scene Management:** Container-swap pattern — all scenes load into a `SceneContainer` node inside `Main.tscn`; autoloads (Enums → SignalBus → GameState → SceneManager) remain alive across every transition

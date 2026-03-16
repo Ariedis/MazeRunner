@@ -8,15 +8,16 @@ Implement AI-controlled opponents that navigate the maze, complete tasks at loca
 ## Tasks
 - [x] Create AI character scene (code-driven CharacterBody2D, no .tscn)
 - [x] Implement A* pathfinding on maze graph
-- [x] AI state machine: EXPLORE → GO_TO_LOC → DO_TASK → GO_TO_EXIT
+- [x] AI state machine: EXPLORE → GO_TO_LOC → DO_TASK → GO_TO_EXIT → RESTING
 - [x] AI exploration: frontier-based — visits adjacent unexplored cells
 - [x] AI task simulation: wait at location for difficulty-scaled duration
 - [x] AI item awareness: each AI has a randomly assigned item location
 - [x] AI exit-seeking: once item collected, pathfind to exit
+- [x] AI energy management: enters RESTING state when energy drops below threshold; resumes prior state when recharged to target
 - [x] Implement difficulty levels affecting AI behavior:
-  - Easy: random frontier exploration, 15% wrong-turn at junctions, 1.5× task wait
-  - Medium: 70% prefer nearest frontier cell, 1.0× task wait
-  - Hard: full omniscience (all locations + exit pre-known), biased exploration, 0.7× task wait
+  - Easy: random frontier exploration, 15% wrong-turn at junctions, 1.5× task wait, 0.8× speed, rest threshold 40→target 80
+  - Medium: 70% prefer nearest frontier cell, 1.0× task wait, 1.0× speed, rest threshold 20→target 50
+  - Hard: full omniscience (all locations + exit pre-known), biased exploration, 0.7× task wait, 1.2× speed, rest threshold 5→target 30
 - [ ] AI collision with player triggers clash (Phase 8)
 - [x] Support configurable number of opponents (1-N from GameState.config)
 - [x] Easy/Medium respects fog — discovers locations/exit by physical contact only
@@ -49,7 +50,7 @@ Implement AI-controlled opponents that navigate the maze, complete tasks at loca
 
 ## Deliverables
 - [x] AStarPathfinder — pure A* on maze graph with Manhattan heuristic
-- [x] AIBrain — state machine (EXPLORE/GO_TO_LOC/DO_TASK/GO_TO_EXIT) with difficulty-aware exploration
+- [x] AIBrain — state machine (EXPLORE/GO_TO_LOC/DO_TASK/GO_TO_EXIT/RESTING) with difficulty-aware exploration and energy management
 - [x] AIOpponent — code-driven CharacterBody2D, owns brain, handles movement and task completion
 - [x] GameScene integration — spawns AI opponents, wires win condition signal
 - [x] Unit tests: test_astar.gd (14 assertions), test_ai_brain.gd (26 assertions)
@@ -69,13 +70,17 @@ Implement AI-controlled opponents that navigate the maze, complete tasks at loca
   can build exploration frontiers without duplicating wall-reading logic.
 
 - **`AIBrain.gd`** — `RefCounted`. Pure logic class — no scene tree dependency.
-  - **`State` enum** — `EXPLORE`, `GO_TO_LOC`, `DO_TASK`, `GO_TO_EXIT`.
+  - **`State` enum** — `EXPLORE`, `GO_TO_LOC`, `DO_TASK`, `GO_TO_EXIT`, `RESTING`. (Local to
+    `AIBrain`; `Enums.AIState` is a separate enum used for serialisation.)
   - **`setup(diff, maze_data, rng)`** — assigns a random location from `maze_data.locations` as
-    `_item_loc_pos` (the AI's personal "item" to find). Hard AI additionally pre-populates
+    `_item_loc_pos` (the AI's personal "item" to find). Reads `Enums.AI_REST_THRESHOLD` and
+    `Enums.AI_REST_TARGET` for this difficulty. Hard AI additionally pre-populates
     `known_uncompleted_locs` with all locations and sets `exit_known = true`.
-  - **`tick(delta, grid_pos, maze_data)`** — advances `task_timer` in `DO_TASK`; otherwise
-    enforces state consistency (has_item + exit_known → GO_TO_EXIT; EXPLORE ↔ GO_TO_LOC based on
-    `known_uncompleted_locs`), then calls `_plan_next_path` if `current_path` is empty.
+  - **`tick(delta, grid_pos, maze_data, energy)`** — advances `task_timer` in `DO_TASK`; in
+    `RESTING`, waits until `energy >= _rest_target` then restores `_pre_rest_state`; if
+    `energy <= _rest_threshold` (and not `GO_TO_EXIT`), saves current state and enters `RESTING`;
+    otherwise enforces state consistency (has_item + exit_known → GO_TO_EXIT; EXPLORE ↔ GO_TO_LOC
+    based on `known_uncompleted_locs`), then calls `_plan_next_path` if `current_path` is empty.
   - **`on_step_reached(grid_pos, maze_data) -> bool`** — advances `current_path`, marks cell
     explored, discovers locations/exit for Easy/Medium (Hard already knows), applies Easy's 15%
     wrong-turn at junctions, returns `true` on win condition (at exit with item).
@@ -84,9 +89,14 @@ Implement AI-controlled opponents that navigate the maze, complete tasks at loca
   - **`on_task_complete()`** — removes `_current_task_pos` from `known_uncompleted_locs`;
     sets `has_item = true` and `GO_TO_EXIT` if the completed location was `_item_loc_pos`;
     otherwise transitions to `GO_TO_LOC` or `EXPLORE`.
+  - **`on_location_completed_externally(loc_pos)`** — removes location from `known_uncompleted_locs`
+    and clears `current_path` if the AI was en route there (called when the player completes a location).
   - **Exploration strategy** — builds frontier (cells adjacent via passage to explored territory
     that haven't been visited). Easy: random pick. Medium: 70% nearest, 30% random. Hard: pick
     frontier cell closest to item location or exit (directional bias).
+  - **Rest thresholds (from `Enums`)**: Easy rests at ≤40 until ≥80; Medium rests at ≤20 until ≥50;
+    Hard rests at ≤5 until ≥30. RESTING is skipped for `GO_TO_EXIT` state so AI always completes
+    the final run regardless of energy.
 
 #### AI Scene (`scenes/ai/`)
 
@@ -98,8 +108,9 @@ Implement AI-controlled opponents that navigate the maze, complete tasks at loca
     Connects to `SignalBus.match_ended` to set `_match_over`.
   - **`_physics_process(delta)`** — checks if AI has arrived at `get_next_step()` (within
     `tile_size * 0.25` px); if so, snaps to cell centre, calls `brain.on_step_reached()`, and
-    calls `_handle_location_arrival()`. Then calls `brain.tick()`. Moves toward `get_next_step()`
-    at `stats.current_speed()`. Drains/regens energy identically to Player.
+    calls `_handle_location_arrival()`. Then calls `brain.tick(delta, grid_pos, maze_data, energy)`.
+    Moves toward `get_next_step()` at `stats.current_speed()` (scaled by `Enums.AI_SPEED_MULTIPLIER`).
+    Drains/regens energy identically to Player; energy is passed to `brain.tick()` each frame.
   - **`_handle_location_arrival(pos)`** — if location is uncompleted, calls `brain.start_task()`.
     If already completed (e.g., done by player), removes from `brain.known_uncompleted_locs`.
   - **`_complete_task()`** — calls `_location_manager.complete_location()`, emits
