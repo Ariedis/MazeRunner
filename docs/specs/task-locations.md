@@ -37,9 +37,9 @@ Location:
 - **Revealed, completed by another:** different visual indicator
 
 ## Testing Criteria
-- [ ] Each player's item placed at exactly one location
-- [ ] Remaining locations have size increasers
-- [ ] Interaction triggers task overlay on first visit
-- [ ] Second visit shows "already completed"
-- [ ] Opponent item is left for opponent
-- [ ] Location visual state updates correctly
+- [x] Each player's item placed at exactly one location
+- [x] Remaining locations have size increasers
+- [x] Interaction triggers task overlay on first visit
+- [x] Second visit shows "already completed" (has_uncompleted_at returns false after completion)
+- [x] Opponent item is left for opponent (OPPONENT_ITEM type handled in TaskOverlay)
+- [x] Location visual state updates correctly (marker turns green after completion)

@@ -9,6 +9,11 @@ var _last_grid_cell := Vector2i(-1, -1)
 var _location_manager: LocationManager
 var _location_markers: Dictionary = {}
 var _task_overlay: TaskOverlay
+var _win_condition: WinConditionManager
+var _results_screen: ResultsScreen
+var _start_time_msec: int = 0
+var _match_over: bool = false
+var _label_rejection: Label
 
 
 func _ready() -> void:
@@ -48,8 +53,9 @@ func _ready() -> void:
 	_location_manager = LocationManager.new()
 	_location_manager.setup(_maze_data, tasks, loc_rng)
 
-	# Spawn location markers (above maze, below fog)
+	# Spawn location markers and exit marker (above maze, below fog)
 	_spawn_location_markers(tile_size)
+	_spawn_exit_marker(tile_size)
 
 	add_child(_fog_renderer)
 
@@ -58,6 +64,17 @@ func _ready() -> void:
 	_task_overlay.name = "TaskOverlay"
 	add_child(_task_overlay)
 	_task_overlay.task_completed.connect(_on_task_completed)
+
+	# Results screen
+	_results_screen = ResultsScreen.new()
+	_results_screen.name = "ResultsScreen"
+	add_child(_results_screen)
+	_results_screen.play_again_requested.connect(_on_play_again)
+	_results_screen.main_menu_requested.connect(SceneManager.go_to_main_menu)
+
+	# Win condition manager
+	_win_condition = WinConditionManager.new()
+	SignalBus.match_ended.connect(_on_match_ended)
 
 	var cam := Camera2D.new()
 	cam.name = "Camera2D"
@@ -69,11 +86,31 @@ func _ready() -> void:
 	$UI/LabelEnergy.text = "Energy: 100%%"
 	$UI/BtnMainMenu.pressed.connect(SceneManager.go_to_main_menu)
 
+	# Rejection message label (created in code — not in scene)
+	_label_rejection = Label.new()
+	_label_rejection.name = "LabelRejection"
+	_label_rejection.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_rejection.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+	_label_rejection.add_theme_font_size_override("font_size", 20)
+	_label_rejection.visible = false
+	$UI.add_child(_label_rejection)
+	_label_rejection.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_label_rejection.offset_top = 60
+	_label_rejection.offset_bottom = 100
+
 	SignalBus.player_energy_changed.connect(_on_player_energy_changed)
+	SignalBus.player_item_collected.connect(_on_player_item_collected)
 	GameState.current_state = Enums.GameState.IN_GAME
+
+	_start_time_msec = Time.get_ticks_msec()
 
 
 func _process(_delta: float) -> void:
+	if _match_over:
+		return
+	if GameState.match_state.get("is_paused", false):
+		return
+
 	var cell := _renderer.world_to_grid(_player.global_position)
 	if cell == _last_grid_cell:
 		return
@@ -82,6 +119,11 @@ func _process(_delta: float) -> void:
 	if revealed.size() > 0:
 		_fog_renderer.reveal_cells(revealed)
 		GameState.player["explored_cells"] = _fog.get_explored_array()
+
+	# Exit check
+	if cell == _maze_data.exit:
+		_handle_exit_interaction()
+		return
 
 	# Location trigger
 	if _location_manager.has_uncompleted_at(cell) and not _task_overlay.visible:
@@ -115,6 +157,44 @@ func _make_marker(tile_size: int) -> Node2D:
 	return n
 
 
+func _spawn_exit_marker(tile_size: int) -> void:
+	var layer := Node2D.new()
+	layer.name = "ExitLayer"
+	add_child(layer)
+
+	var marker := Node2D.new()
+	var poly := Polygon2D.new()
+	var r := tile_size * 0.45
+	var pts: PackedVector2Array
+	# Star shape (8-pointed)
+	for i in 8:
+		var a := i * TAU / 8
+		var inner_r := r * 0.5 if i % 2 == 1 else r
+		pts.append(Vector2(cos(a), sin(a)) * inner_r)
+	poly.polygon = pts
+	poly.color = Color(0.4, 0.9, 1.0)
+	marker.add_child(poly)
+	marker.position = _renderer.get_world_position(_maze_data.exit)
+	layer.add_child(marker)
+
+
+func _handle_exit_interaction() -> void:
+	var has_item: bool = GameState.player.get("has_item", false)
+	var result := _win_condition.check_player_at_exit(has_item)
+	if result == WinConditionManager.Result.PLAYER_WIN:
+		# match_ended signal already emitted by WinConditionManager
+		pass
+	else:
+		_show_rejection_message("You need your item to exit!")
+
+
+func _show_rejection_message(msg: String) -> void:
+	_label_rejection.text = msg
+	_label_rejection.visible = true
+	var timer := get_tree().create_timer(2.5)
+	timer.timeout.connect(func(): _label_rejection.visible = false)
+
+
 func _on_task_completed(location_id: int) -> void:
 	_location_manager.complete_location(location_id)
 	GameState.match_state["locations_completed"].append(location_id)
@@ -125,6 +205,7 @@ func _on_task_completed(location_id: int) -> void:
 		_player.stats.add_size(1)
 		SignalBus.player_size_changed.emit(_player.stats.size)
 		GameState.player["size"] = _player.stats.size
+		$UI/LabelSize.text = "Size: %d" % _player.stats.size
 	elif loc.item_type == Enums.ItemType.PLAYER_ITEM:
 		GameState.player["has_item"] = true
 		GameState.player["item_id"] = GameState.config.get("item_id", 0)
@@ -138,7 +219,32 @@ func _on_task_completed(location_id: int) -> void:
 	SignalBus.location_completed.emit(location_id, "player")
 
 
+func _on_player_item_collected() -> void:
+	$UI/LabelItem.text = "Item: Collected!"
+
+
 func _on_player_energy_changed(value: float) -> void:
 	$UI/LabelEnergy.text = "Energy: %d%%" % int(value)
 	var speed_text := "FULL" if value > 0.0 else "HALF"
 	$UI/LabelSpeed.text = "Speed: %s" % speed_text
+
+
+func _on_match_ended(result: String) -> void:
+	if _match_over:
+		return
+	_match_over = true
+	GameState.current_state = Enums.GameState.GAME_OVER
+
+	var elapsed_sec := float(Time.get_ticks_msec() - _start_time_msec) / 1000.0
+	var explored := _fog.get_explored_array().size()
+	var final_size: int = GameState.player.get("size", 1)
+
+	if result == "player_win":
+		_results_screen.show_win(elapsed_sec, explored, final_size)
+	else:
+		_results_screen.show_loss("Opponent", elapsed_sec, explored, final_size)
+
+
+func _on_play_again() -> void:
+	GameState.reset_for_new_game()
+	SceneManager.go_to_game_scene()

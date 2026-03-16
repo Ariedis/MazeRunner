@@ -1,7 +1,27 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(where godot:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(\"D:/Users/Ariedis/Downloads/Godot_v4.6.1-stable_win64.exe\" --headless --path \"D:/Coding/Projects/Maze Runner\" \"res://tests/scenes/TestRunnerScene.tscn\" 2>&1)",
+      "Bash(cmd.exe /c '\"D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe\" --headless --path \"D:\\\\Coding\\\\Projects\\\\Maze Runner\" \"res://tests/scenes/TestRunnerScene.tscn\" > \"%TEMP%\\\\godot_test_out.txt\" 2>&1 & echo EXIT:%ERRORLEVEL%' && cat /c/Users/Ariedis/AppData/Local/Temp/godot_test_out.txt)",
+      "Bash(cmd.exe /c '\"D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe\" --headless --path \"D:\\\\Coding\\\\Projects\\\\Maze Runner\" \"res://tests/scenes/TestRunnerScene.tscn\" > \"C:\\\\Users\\\\Ariedis\\\\AppData\\\\Local\\\\Temp\\\\godot_test_out.txt\" 2>&1'\ncat \"C:\\\\Users\\\\Ariedis\\\\AppData\\\\Local\\\\Temp\\\\godot_test_out.txt\")",
+      "Bash(cmd.exe /c '\"D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe\" --headless --path \"D:\\\\Coding\\\\Projects\\\\Maze Runner\" \"res://tests/scenes/TestRunnerScene.tscn\" > C:\\\\Temp\\\\godot_out.txt 2>&1 && type C:\\\\Temp\\\\godot_out.txt' 2>&1; echo \"EXIT: $?\")",
+      "Bash(mkdir:*)",
+      "Bash(powershell.exe -Command \"& 'D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe' --headless --path 'D:\\\\Coding\\\\Projects\\\\Maze Runner' 'res://tests/scenes/TestRunnerScene.tscn'\" 2>&1; echo \"Exit: $?\")",
+      "Bash(powershell.exe -Command \"& 'D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe' --headless --path 'D:\\\\Coding\\\\Projects\\\\Maze Runner' 'res://tests/scenes/TestRunnerScene.tscn'; exit \\\\$LASTEXITCODE\" 2>&1)",
+      "Bash(powershell.exe -File - <<'PS'\n$godot = \"D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe\"\n$project = \"D:\\\\Coding\\\\Projects\\\\Maze Runner\"\n$scene = \"res://tests/scenes/TestRunnerScene.tscn\"\n& $godot --headless --path $project $scene\nexit $LASTEXITCODE\nPS)",
+      "Bash(cmd.exe /c dir \"D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe\" 2>&1)",
+      "Bash(cmd.exe /c \"dir D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe && echo FOUND\" 2>&1)",
+      "Bash(cmd.exe /c \"dir D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe 2>&1 | more\" 2>&1)",
+      "Bash(cmd.exe /c \"D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe --headless --path \"\"D:\\\\Coding\\\\Projects\\\\Maze Runner\"\" res://tests/scenes/TestRunnerScene.tscn > D:\\\\godot_out.txt 2>&1\")",
+      "Read(//d//**)",
+      "Bash(ls /d/*.txt)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"D:\\\\Coding\\\\Projects\\\\Maze Runner\\\\run_tests.ps1\" 2>&1)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -Command \"icacls 'D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe'\" 2>&1)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -Command \"whoami; [System.Security.Principal.WindowsIdentity]::GetCurrent\\(\\).Name\" 2>&1)"
     ]
   }
 }

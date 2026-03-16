@@ -52,9 +52,9 @@ Maze:
 - Large: <1000ms generation
 
 ## Testing Criteria
-- [ ] Algorithm produces a perfect maze (no loops, fully connected)
-- [ ] Same seed produces identical maze
-- [ ] Different seeds produce different mazes
-- [ ] Locations placed with minimum distance constraints
-- [ ] Exit reachable from spawn
-- [ ] Generation time within targets per size
+- [x] Algorithm produces a perfect maze (no loops, fully connected)
+- [x] Same seed produces identical maze
+- [x] Different seeds produce different mazes
+- [x] Locations placed with minimum distance constraints
+- [x] Exit reachable from spawn
+- [x] Generation time within targets per size

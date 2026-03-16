@@ -34,9 +34,9 @@ Movement costs energy. When energy is depleted, the player moves at half speed. 
 - Half-speed players are more vulnerable to clashes (opponents catch up)
 
 ## Testing Criteria
-- [ ] Energy decreases only while moving
-- [ ] Energy increases only while stationary
-- [ ] Speed halves at exactly 0% energy
-- [ ] Speed restores when energy > 0%
-- [ ] Energy doesn't change during overlays
-- [ ] Drain/regen rates are configurable for balancing
+- [x] Energy decreases only while moving
+- [x] Energy increases only while stationary
+- [x] Speed halves at exactly 0% energy
+- [x] Speed restores when energy > 0%
+- [x] Energy doesn't change during overlays (game paused via is_paused flag)
+- [x] Drain/regen rates are configurable for balancing (ENERGY_DRAIN / ENERGY_REGEN constants in Enums)

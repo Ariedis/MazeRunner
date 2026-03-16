@@ -35,9 +35,16 @@ offset_right = 300.0
 offset_bottom = 125.0
 text = "Speed: FULL"
 
-[node name="BtnMainMenu" type="Button" parent="UI"]
+[node name="LabelItem" type="Label" parent="UI"]
 offset_left = 10.0
 offset_top = 130.0
+offset_right = 300.0
+offset_bottom = 155.0
+text = "Item: Not yet found"
+
+[node name="BtnMainMenu" type="Button" parent="UI"]
+offset_left = 10.0
+offset_top = 160.0
 offset_right = 160.0
-offset_bottom = 160.0
+offset_bottom = 190.0
 text = "Main Menu"

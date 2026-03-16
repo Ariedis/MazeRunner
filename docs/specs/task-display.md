@@ -49,11 +49,11 @@ Bundle a set of default tasks with the game:
 - Duration varies by difficulty (Easy: longer, Hard: shorter)
 
 ## Testing Criteria
-- [ ] Overlay displays title, description, media correctly
-- [ ] Timer counts down accurately
-- [ ] "Done" button disabled until timer completes
-- [ ] Game pauses during overlay
-- [ ] Item revealed after "Done" pressed
-- [ ] Default tasks load correctly
-- [ ] Custom tasks with various media formats display correctly
-- [ ] AI simulates task wait without overlay
+- [x] Overlay displays title, description, media correctly
+- [x] Timer counts down accurately
+- [x] "Done" button disabled until timer completes
+- [x] Game pauses during overlay (is_paused flag set in GameScene)
+- [x] Item revealed after "Done" pressed
+- [x] Default tasks load correctly (5 default tasks via TaskLoader)
+- [ ] Custom tasks with various media formats display correctly — deferred to Phase 11
+- [ ] AI simulates task wait without overlay — deferred to Phase 7

@@ -15,8 +15,8 @@
 | 2 | Maze Generation & Rendering | COMPLETE | [spec](phases/phase-2-maze-generation.md) |
 | 3 | Player Movement & Mechanics | COMPLETE | [spec](phases/phase-3-player-mechanics.md) |
 | 4 | Fog of War & Exploration | COMPLETE | [spec](phases/phase-4-fog-of-war.md) |
-| 5 | Locations & Task System | NOT STARTED | [spec](phases/phase-5-task-system.md) |
-| 6 | Item System & Win Condition | NOT STARTED | [spec](phases/phase-6-item-system.md) |
+| 5 | Locations & Task System | COMPLETE | [spec](phases/phase-5-task-system.md) |
+| 6 | Item System & Win Condition | COMPLETE | [spec](phases/phase-6-item-system.md) |
 | 7 | AI Opponents | NOT STARTED | [spec](phases/phase-7-ai-opponents.md) |
 | 8 | Clash System | NOT STARTED | [spec](phases/phase-8-clash-system.md) |
 | 9 | UI & Menus | NOT STARTED | [spec](phases/phase-9-ui-menus.md) |

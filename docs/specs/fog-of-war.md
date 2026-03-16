@@ -36,9 +36,9 @@ The maze is hidden by fog. Only areas the player has explored are visible. Locat
 - On load, fog state is restored from saved explored cells
 
 ## Testing Criteria
-- [ ] Unexplored areas are fully hidden
-- [ ] Exploration reveals cells permanently
-- [ ] Locations only visible when in explored area
-- [ ] Exit only visible when in explored area
-- [ ] AI opponents only visible in explored area
-- [ ] Fog state saves and loads correctly
+- [x] Unexplored areas are fully hidden
+- [x] Exploration reveals cells permanently
+- [x] Locations only visible when in explored area
+- [x] Exit only visible when in explored area
+- [ ] AI opponents only visible in explored area — deferred to Phase 7
+- [ ] Fog state saves and loads correctly — deferred to Phase 10 (load_from_array implemented, serialization wired in Phase 10)

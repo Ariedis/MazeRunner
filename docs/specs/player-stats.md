@@ -37,8 +37,8 @@ Each character (player and AI) has three stats that affect gameplay.
 - Allocation budget is a balance lever — tune in Phase 12
 
 ## Testing Criteria
-- [ ] Size capped at 10, cannot exceed
-- [ ] Speed toggles correctly at energy boundary
-- [ ] Energy drains and regens at defined rates
-- [ ] Starting stats respect character creator allocation
-- [ ] Stats persist correctly through save/load
+- [x] Size capped at 10, cannot exceed
+- [x] Speed toggles correctly at energy boundary
+- [x] Energy drains and regens at defined rates
+- [ ] Starting stats respect character creator allocation — deferred to Phase 9
+- [ ] Stats persist correctly through save/load — deferred to Phase 10

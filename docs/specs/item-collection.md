@@ -8,7 +8,7 @@ Each player has one specific item they must find. Items are purely cosmetic/them
 Item:
   - id: String
   - name: String         # e.g., "Golden Key", "Crystal Orb"
-  - icon: Texture2D      # asset image for display
+  - icon: Texture2D      # asset image for display — deferred (not yet implemented)
   - is_custom: bool
 ```
 
@@ -38,9 +38,9 @@ Bundle a starter set:
 - Appear in New Game item selector alongside defaults
 
 ## Testing Criteria
-- [ ] Player's item placed at one location per game
-- [ ] Collection triggers HUD indicator
-- [ ] Opponent items left for opponent
-- [ ] Size increaser applies +1, capped at 10
-- [ ] Custom items display correctly in game
-- [ ] Item state saves/loads correctly
+- [x] Player's item placed at one location per game
+- [x] Collection triggers HUD indicator
+- [x] Opponent items left for opponent
+- [x] Size increaser applies +1, capped at 10
+- [ ] Custom items display correctly in game — deferred to Phase 11 (Settings screen)
+- [ ] Item state saves/loads correctly — deferred to Phase 10 (Save/Load system)
