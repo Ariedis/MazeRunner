@@ -18,7 +18,7 @@
 | 5 | Locations & Task System | COMPLETE | [spec](phases/phase-5-task-system.md) |
 | 6 | Item System & Win Condition | COMPLETE | [spec](phases/phase-6-item-system.md) |
 | 7 | AI Opponents | COMPLETE | [spec](phases/phase-7-ai-opponents.md) |
-| 8 | Clash System | NOT STARTED | [spec](phases/phase-8-clash-system.md) |
+| 8 | Clash System | COMPLETE | [spec](phases/phase-8-clash-system.md) |
 | 9 | UI & Menus | NOT STARTED | [spec](phases/phase-9-ui-menus.md) |
 | 10 | Save & Load System | NOT STARTED | [spec](phases/phase-10-save-load.md) |
 | 11 | Settings & Customization | NOT STARTED | [spec](phases/phase-11-settings.md) |
@@ -59,9 +59,10 @@
 - **Wall Collision:** `StaticBody2D` with one `CollisionShape2D` per wall tile — programmatic TileSet physics layers proved unreliable in Godot 4 at runtime; explicit StaticBody2D uses only standard 2D physics. All collision shapes share a single `RectangleShape2D` instance
 - **Player Motion:** `MOTION_MODE_FLOATING` on `CharacterBody2D` — avoids platformer-style floor-snapping in a top-down view
 - **Fog of War:** Two-TileMap approach: `FogRenderer` adds a second black-tiled TileMap as a scene child *after* location/exit marker layers, so the draw order naturally hides markers until fog is cleared. Fog state stored as `Dictionary` (Vector2i → true) for O(1) lookup; only newly-revealed cells passed to the renderer each frame
-- **AI Navigation:** A* pathfinding on maze graph; `AIBrain` state machine (EXPLORE/GO_TO_LOC/DO_TASK/GO_TO_EXIT/RESTING) with difficulty controlling exploration strategy, movement speed (0.8×/1.0×/1.2×), task wait (1.5×/1.0×/0.7×), and energy rest thresholds (40→80 / 20→50 / 5→30). Hard AI has full omniscience (all locations + exit known from start). Easy/Medium discover locations and exit by physical contact only.
+- **AI Navigation:** A* pathfinding on maze graph; `AIBrain` state machine (EXPLORE/GO_TO_LOC/DO_TASK/GO_TO_EXIT/RESTING/PENALTY) with difficulty controlling exploration strategy, movement speed (0.8×/1.0×/1.2×), task wait (1.5×/1.0×/0.7×), and energy rest thresholds (40→80 / 20→50 / 5→30). Hard AI has full omniscience (all locations + exit known from start). Easy/Medium discover locations and exit by physical contact only.
+- **Clash System:** Player (collision layer 2) and AI (layer 4) use non-overlapping masks so they phase through each other — no blocking. Clash triggers are distance-based: `GameScene._check_clashes()` checks all character pairs every frame. Player-AI clashes show `ClashOverlay`; AI-AI clashes resolve instantly. Both characters receive a cooldown equal to `CLASH_COOLDOWN_SECONDS + penalty_duration` after a clash. `ClashResolver` is a pure-logic class (static methods) for dice rolling and penalty parameter lookup.
 - **Save Format:** JSON serialization of full game state *(Phase 10)*
-- **Code-Driven UI (Phases 5–6):** `TaskOverlay` and `ResultsScreen` are built entirely in GDScript `_ready()` with no `.tscn` files — reduces scene-file maintenance during mid-game phases. Proper UI with theming deferred to Phase 9
+- **Code-Driven UI (Phases 5–8):** `TaskOverlay`, `ResultsScreen`, and `ClashOverlay` are built entirely in GDScript with no `.tscn` files — reduces scene-file maintenance during mid-game phases. Proper UI with theming deferred to Phase 9
 - **Scene Management:** Container-swap pattern — all scenes load into a `SceneContainer` node inside `Main.tscn`; autoloads (Enums → SignalBus → GameState → SceneManager) remain alive across every transition
 
 ### Suggested Additional Features (Future)

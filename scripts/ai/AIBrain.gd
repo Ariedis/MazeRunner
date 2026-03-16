@@ -2,7 +2,7 @@ class_name AIBrain
 extends RefCounted
 
 
-enum State { EXPLORE = 0, GO_TO_LOC, DO_TASK, GO_TO_EXIT, RESTING }
+enum State { EXPLORE = 0, GO_TO_LOC, DO_TASK, GO_TO_EXIT, RESTING, PENALTY }
 
 var difficulty: int = Enums.Difficulty.MEDIUM
 var state: int = State.EXPLORE
@@ -12,6 +12,12 @@ var has_item: bool = false
 var _pre_rest_state: int = State.EXPLORE
 var _rest_threshold: float = 20.0
 var _rest_target: float = 50.0
+
+## State saved before entering PENALTY, restored when penalty timer expires.
+var _pre_penalty_state: int = State.EXPLORE
+
+## Penalty countdown timer (seconds). Active while state == PENALTY.
+var penalty_timer: float = 0.0
 
 ## Cells this AI has physically visited.
 var explored: Dictionary = {}  # Vector2i -> true
@@ -59,11 +65,32 @@ func setup(diff: int, maze_data: MazeData, rng: RandomNumberGenerator) -> void:
 			state = State.GO_TO_LOC
 
 
+## Called by AIOpponent when this AI loses a clash.
+## duration: penalty wait time in seconds (mirrors the physical task timer).
+func start_penalty(duration: float) -> void:
+	_pre_penalty_state = state
+	state = State.PENALTY
+	penalty_timer = duration
+	current_path.clear()
+
+
+func is_in_penalty() -> bool:
+	return state == State.PENALTY
+
+
 ## Called each physics frame. Advances timers and ensures a valid path exists.
 ## energy: current energy level from PlayerStats (used for rest decisions).
 func tick(delta: float, grid_pos: Vector2i, maze_data: MazeData, energy: float = 100.0) -> void:
 	if state == State.DO_TASK:
 		task_timer = maxf(0.0, task_timer - delta)
+		return
+
+	# PENALTY: stay frozen for the clash penalty duration.
+	if state == State.PENALTY:
+		penalty_timer = maxf(0.0, penalty_timer - delta)
+		if penalty_timer <= 0.0:
+			state = _pre_penalty_state
+			current_path.clear()
 		return
 
 	# RESTING: stay still until energy reaches target, then resume.

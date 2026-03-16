@@ -3,19 +3,42 @@ extends CharacterBody2D
 
 var stats: PlayerStats = PlayerStats.new()
 
+## True while the player is involved in a clash (immobilized).
+var _is_frozen: bool = false
+
+## Cooldown timer (seconds) to prevent immediate re-clash after separation.
+var _clash_cooldown: float = 0.0
+
 
 func setup(tile_size: int) -> void:
 	var shape := CircleShape2D.new()
 	shape.radius = tile_size * 0.4
 	$CollisionShape2D.shape = shape
 
+	# Layer 2: player body. Mask 1: collide with walls only — AI opponents are on
+	# layer 4 and are not in this mask, so they phase through the player.
+	collision_layer = 2
+	collision_mask = 1
+
 	stats.size = GameState.player.get("size", 1)
 	stats.energy = GameState.player.get("energy", 100.0)
 
 
+func freeze() -> void:
+	_is_frozen = true
+
+
+func unfreeze() -> void:
+	_is_frozen = false
+
+
 func _physics_process(delta: float) -> void:
-	if GameState.match_state.get("is_paused", false):
+	if _clash_cooldown > 0.0:
+		_clash_cooldown -= delta
+
+	if GameState.match_state.get("is_paused", false) or _is_frozen:
 		velocity = Vector2.ZERO
+		# Energy does not drain or regen while paused or during a clash penalty.
 		return
 
 	var input_dir := Vector2.ZERO

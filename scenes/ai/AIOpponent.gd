@@ -16,6 +16,12 @@ var _match_over: bool = false
 var _collision_shape: CollisionShape2D
 var _visual: Polygon2D
 
+## Cooldown timer (seconds) to prevent immediate re-clash after a clash resolves.
+var _clash_cooldown: float = 0.0
+
+## Dedicated RNG for clash dice rolls, seeded independently of the navigation RNG.
+var _clash_rng: RandomNumberGenerator
+
 ## Colors for each brain state, providing visual feedback to the player.
 const _STATE_COLORS: Dictionary = {
 	AIBrain.State.EXPLORE: Color(1.0, 0.5, 0.15),
@@ -40,6 +46,11 @@ func setup(tile_size: int, difficulty: int, ai_idx: int, maze_data: MazeData,
 
 	# Must be set before move_and_slide() is ever called.
 	motion_mode = MOTION_MODE_FLOATING
+
+	# Layer 4: AI body. Mask 1: collide with walls only — player (layer 2) and
+	# other AIs (layer 4) are not in this mask, so they phase through freely.
+	collision_layer = 4
+	collision_mask = 1
 
 	# Create child nodes here (not in _ready()) to guarantee they exist.
 	_collision_shape = CollisionShape2D.new()
@@ -70,6 +81,9 @@ func setup(tile_size: int, difficulty: int, ai_idx: int, maze_data: MazeData,
 	brain = AIBrain.new()
 	brain.setup(difficulty, maze_data, rng)
 
+	_clash_rng = RandomNumberGenerator.new()
+	_clash_rng.seed = maze_data.seed_val + ai_idx + 9999
+
 	# position must already be set by the caller before setup() is invoked,
 	# so world_to_grid gives the correct spawn grid cell.
 	var spawn_grid := renderer.world_to_grid(global_position)
@@ -80,12 +94,22 @@ func setup(tile_size: int, difficulty: int, ai_idx: int, maze_data: MazeData,
 
 
 func _physics_process(delta: float) -> void:
+	if _clash_cooldown > 0.0:
+		_clash_cooldown -= delta
+
 	if _match_over:
 		velocity = Vector2.ZERO
 		return
 
 	if GameState.match_state.get("is_paused", false):
 		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
+	# PENALTY: stand still, no energy regen, wait for timer.
+	if brain.is_in_penalty():
+		velocity = Vector2.ZERO
+		brain.tick(delta, _renderer.world_to_grid(global_position), _maze_data, stats.energy)
 		move_and_slide()
 		return
 
@@ -141,15 +165,43 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 
+## Resolves a clash between this AI and another AI opponent instantly (no overlay).
+## Called by GameScene when proximity detection fires for an AI-AI pair.
+func resolve_ai_ai_clash(other: AIOpponent) -> void:
+	var result := ClashResolver.resolve(stats.size, other.stats.size, _clash_rng)
+	var winner: AIOpponent = self if result["winner"] == "a" else other
+	var loser: AIOpponent = other if result["winner"] == "a" else self
+	var winner_energy: float = winner.stats.energy
+	var duration: float = ClashResolver.get_penalty_duration(winner_energy)
+	loser.brain.start_penalty(duration)
+
+	# Apply cooldown: base buffer + full penalty duration so neither AI
+	# can re-clash until the loser's penalty has expired.
+	var total_cooldown := Enums.CLASH_COOLDOWN_SECONDS + duration
+	_clash_cooldown = total_cooldown
+	other._clash_cooldown = total_cooldown
+
+	# Push apart to separate them.
+	var sep_dir := (global_position - other.global_position).normalized()
+	if sep_dir == Vector2.ZERO:
+		sep_dir = Vector2.RIGHT
+	global_position += sep_dir * float(_tile_size) * 0.6
+	other.global_position -= sep_dir * float(_tile_size) * 0.6
+
+
 func _update_visual() -> void:
 	if _visual == null:
 		return
 	var base_color: Color = _STATE_COLORS.get(brain.state, Color(1.0, 0.5, 0.15))
+	if brain.state == AIBrain.State.PENALTY:
+		base_color = Color(0.6, 0.0, 0.8)  # Purple for penalty state.
 	_visual.color = base_color
 	if brain.state == AIBrain.State.DO_TASK:
 		_visual.modulate.a = 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.005)
 	elif brain.state == AIBrain.State.RESTING:
 		_visual.modulate.a = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.003)
+	elif brain.state == AIBrain.State.PENALTY:
+		_visual.modulate.a = 0.4 + 0.6 * sin(Time.get_ticks_msec() * 0.008)
 	else:
 		_visual.modulate.a = 1.0
 

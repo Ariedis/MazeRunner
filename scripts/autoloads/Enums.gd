@@ -91,6 +91,13 @@ const MIN_SIZE: int = 1
 const MAX_SIZE: int = 10
 const CREATOR_BUDGET: int = 3
 
+## Seconds before a character that just clashed can clash again.
+const CLASH_COOLDOWN_SECONDS: float = 3.0
+
+## Default clash penalty task parameters.
+const CLASH_PENALTY_EXERCISE: String = "Bicep Curls"
+const CLASH_PENALTY_REPS: int = 10
+
 const STARTING_ENERGY: float = 100.0
 const ENERGY_DRAIN: float = 1.0
 const ENERGY_REGEN: float = 2.0

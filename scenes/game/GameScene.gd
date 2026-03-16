@@ -15,6 +15,10 @@ var _start_time_msec: int = 0
 var _match_over: bool = false
 var _label_rejection: Label
 var _ai_opponents: Array = []
+var _tile_size: int = 0
+var _clash_overlay: ClashOverlay
+var _clash_active: bool = false
+var _clash_rng: RandomNumberGenerator
 
 
 func _ready() -> void:
@@ -36,7 +40,8 @@ func _ready() -> void:
 	_player.name = "Player"
 	add_child(_player)
 
-	var tile_size: int = size_data["cell_px"] / 2
+	_tile_size = size_data["cell_px"] / 2
+	var tile_size: int = _tile_size
 	_player.setup(tile_size)
 	_player.position = _renderer.get_world_position(_maze_data.player_spawn)
 
@@ -87,6 +92,16 @@ func _ready() -> void:
 	_results_screen.play_again_requested.connect(_on_play_again)
 	_results_screen.main_menu_requested.connect(SceneManager.go_to_main_menu)
 
+	# Clash overlay (CanvasLayer z=15, between task overlay and results)
+	_clash_overlay = ClashOverlay.new()
+	_clash_overlay.name = "ClashOverlay"
+	add_child(_clash_overlay)
+	_clash_overlay.clash_resolved.connect(_on_clash_resolved)
+	_clash_overlay.penalty_completed.connect(_on_clash_penalty_completed)
+
+	_clash_rng = RandomNumberGenerator.new()
+	_clash_rng.seed = _maze_data.seed_val ^ 0xC1A51
+
 	# Win condition manager
 	_win_condition = WinConditionManager.new()
 	SignalBus.match_ended.connect(_on_match_ended)
@@ -125,6 +140,8 @@ func _process(_delta: float) -> void:
 		return
 	if GameState.match_state.get("is_paused", false):
 		return
+
+	_check_clashes()
 
 	var cell := _renderer.world_to_grid(_player.global_position)
 	if cell == _last_grid_cell:
@@ -268,3 +285,100 @@ func _on_ai_reached_exit_with_item() -> void:
 func _on_play_again() -> void:
 	GameState.reset_for_new_game()
 	SceneManager.go_to_game_scene()
+
+
+## Proximity-based clash detection. Called every frame from _process.
+## Triggers player-AI and AI-AI clashes when characters are close enough.
+func _check_clashes() -> void:
+	var clash_dist := float(_tile_size) * 1.0
+
+	# Player vs AI opponents.
+	if not _clash_active and _player._clash_cooldown <= 0.0 and not _player._is_frozen:
+		for ai in _ai_opponents:
+			var opp: AIOpponent = ai
+			if opp._clash_cooldown > 0.0 or opp.brain.is_in_penalty():
+				continue
+			if _player.global_position.distance_to(opp.global_position) <= clash_dist:
+				_on_player_clash_triggered(opp)
+				break
+
+	# AI vs AI opponents (check each unordered pair once).
+	for i in _ai_opponents.size():
+		var ai_a: AIOpponent = _ai_opponents[i]
+		if ai_a._clash_cooldown > 0.0 or ai_a.brain.is_in_penalty():
+			continue
+		for j in range(i + 1, _ai_opponents.size()):
+			var ai_b: AIOpponent = _ai_opponents[j]
+			if ai_b._clash_cooldown > 0.0 or ai_b.brain.is_in_penalty():
+				continue
+			if ai_a.global_position.distance_to(ai_b.global_position) <= clash_dist:
+				ai_a.resolve_ai_ai_clash(ai_b)
+				break
+
+
+## Handles a detected player-vs-AI clash.
+func _on_player_clash_triggered(opp: AIOpponent) -> void:
+	if _match_over or _clash_active:
+		return
+	if opp.brain.is_in_penalty() or opp._clash_cooldown > 0.0:
+		return
+
+	_clash_active = true
+	_player.freeze()
+
+	# Resolve the dice roll.
+	var result := ClashResolver.resolve(_player.stats.size, opp.stats.size, _clash_rng)
+	var player_won: bool = result["winner"] == "a"
+
+	# Determine penalty parameters based on the winner's stats.
+	var winner_size: int = _player.stats.size if player_won else opp.stats.size
+	var winner_energy: float = _player.stats.energy if player_won else opp.stats.energy
+	var penalty_duration: float = ClashResolver.get_penalty_duration(winner_energy)
+
+	# Apply penalty to the loser.
+	if player_won:
+		opp.brain.start_penalty(penalty_duration)
+	# Player loses — they stay frozen until ClashOverlay emits penalty_completed.
+
+	# Apply cooldowns: base buffer + full penalty duration so neither character
+	# can re-clash until the penalty has expired.
+	var total_cooldown := Enums.CLASH_COOLDOWN_SECONDS + penalty_duration
+	_player._clash_cooldown = total_cooldown
+	opp._clash_cooldown = total_cooldown
+	var sep_dir := (_player.global_position - opp.global_position).normalized()
+	if sep_dir == Vector2.ZERO:
+		sep_dir = Vector2.RIGHT
+	_player.global_position += sep_dir * float(_tile_size) * 0.6
+	opp.global_position -= sep_dir * float(_tile_size) * 0.6
+
+	# Load custom task for penalty display.
+	var task := ClashTaskLoader.load_active_task()
+
+	# Show clash overlay.
+	_clash_overlay.show_clash_result({
+		"player_won": player_won,
+		"player_roll": result["roll_a"],
+		"player_size": _player.stats.size,
+		"player_total": result["total_a"],
+		"opp_roll": result["roll_b"],
+		"opp_size": opp.stats.size,
+		"opp_total": result["total_b"],
+		"rerolls": result["rerolls"],
+		"weight": ClashResolver.get_penalty_weight(winner_size),
+		"speed": ClashResolver.get_penalty_speed(winner_energy),
+		"duration": penalty_duration,
+		"exercise": task["exercise"],
+		"reps": task["reps"],
+	})
+
+
+## Player won the clash — dismiss overlay and resume.
+func _on_clash_resolved() -> void:
+	_player.unfreeze()
+	_clash_active = false
+
+
+## Player lost the clash — penalty complete, resume.
+func _on_clash_penalty_completed() -> void:
+	_player.unfreeze()
+	_clash_active = false
