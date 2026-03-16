@@ -65,7 +65,11 @@ func _build_wall_collisions() -> void:
 		static_body.add_child(col_shape)
 
 func get_world_position(grid_pos: Vector2i) -> Vector2:
-	return Vector2((2 * grid_pos.x + 1) * _tile_size, (2 * grid_pos.y + 1) * _tile_size)
+	var half := _tile_size / 2.0
+	return Vector2(
+		(2 * grid_pos.x + 1) * _tile_size + half,
+		(2 * grid_pos.y + 1) * _tile_size + half
+	)
 
 func world_to_grid(world_pos: Vector2) -> Vector2i:
 	return Vector2i(

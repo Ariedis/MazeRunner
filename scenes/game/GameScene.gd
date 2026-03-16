@@ -14,6 +14,7 @@ var _results_screen: ResultsScreen
 var _start_time_msec: int = 0
 var _match_over: bool = false
 var _label_rejection: Label
+var _ai_opponents: Array = []
 
 
 func _ready() -> void:
@@ -56,6 +57,20 @@ func _ready() -> void:
 	# Spawn location markers and exit marker (above maze, below fog)
 	_spawn_location_markers(tile_size)
 	_spawn_exit_marker(tile_size)
+
+	# Spawn AI opponents (added before fog so fog covers them in unexplored areas).
+	var num_opponents: int = GameState.config.get("num_opponents", 1)
+	var ai_difficulties: Array = GameState.config.get("ai_difficulties", [Enums.Difficulty.EASY])
+	for i in min(num_opponents, _maze_data.ai_spawns.size()):
+		var ai := AIOpponent.new()
+		ai.name = "AIOpponent_%d" % i
+		add_child(ai)
+		# Position must be set BEFORE setup() so the brain records the correct spawn cell.
+		ai.position = _renderer.get_world_position(_maze_data.ai_spawns[i])
+		var diff: int = ai_difficulties[i] if i < ai_difficulties.size() else Enums.Difficulty.EASY
+		ai.setup(tile_size, diff, i, _maze_data, _location_manager, _renderer)
+		ai.reached_exit_with_item.connect(_on_ai_reached_exit_with_item)
+		_ai_opponents.append(ai)
 
 	add_child(_fog_renderer)
 
@@ -243,6 +258,11 @@ func _on_match_ended(result: String) -> void:
 		_results_screen.show_win(elapsed_sec, explored, final_size)
 	else:
 		_results_screen.show_loss("Opponent", elapsed_sec, explored, final_size)
+
+
+func _on_ai_reached_exit_with_item() -> void:
+	if not _match_over:
+		_win_condition.check_ai_at_exit(true)
 
 
 func _on_play_again() -> void:

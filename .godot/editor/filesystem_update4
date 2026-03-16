@@ -1,0 +1,5 @@
+res://scripts/maze/MazeRenderer.gd
+res://scenes/ai/AIOpponent.gd
+res://scripts/ai/AIBrain.gd
+res://scripts/ai/AStarPathfinder.gd
+res://scripts/autoloads/Enums.gd

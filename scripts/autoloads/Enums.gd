@@ -6,6 +6,13 @@ enum ItemType {
 	SIZE_INCREASER = 2
 }
 
+enum AIState {
+	EXPLORE = 0,
+	GO_TO_LOC,
+	DO_TASK,
+	GO_TO_EXIT
+}
+
 enum GameState {
 	MENU = 0,
 	CHARACTER_SELECT,
@@ -50,6 +57,34 @@ const MAP_SIZE_DATA: Dictionary = {
 		"max_opponents": 6,
 		"cell_px": 32
 	}
+}
+
+## Task duration multipliers per AI difficulty (keyed by Difficulty enum int value).
+const AI_TASK_MULTIPLIER: Dictionary = {
+	0: 1.5,  # EASY
+	1: 1.0,  # MEDIUM
+	2: 0.7,  # HARD
+}
+
+## Movement speed multipliers per AI difficulty.
+const AI_SPEED_MULTIPLIER: Dictionary = {
+	0: 0.8,  # EASY
+	1: 1.0,  # MEDIUM
+	2: 1.2,  # HARD
+}
+
+## Energy thresholds at which AI starts resting, per difficulty.
+const AI_REST_THRESHOLD: Dictionary = {
+	0: 40.0,  # EASY
+	1: 20.0,  # MEDIUM
+	2: 5.0,   # HARD
+}
+
+## Energy targets AI rests until reaching, per difficulty.
+const AI_REST_TARGET: Dictionary = {
+	0: 80.0,  # EASY
+	1: 50.0,  # MEDIUM
+	2: 30.0,  # HARD
 }
 
 const MIN_SIZE: int = 1
