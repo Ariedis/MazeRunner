@@ -747,6 +747,7 @@ func _on_player_clash_triggered(opp: AIOpponent) -> void:
 		"duration": penalty_duration,
 		"exercise": task["exercise"],
 		"reps": task["reps"],
+		"media_path": task.get("media_path", ""),
 	})
 
 

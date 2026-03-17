@@ -43,6 +43,7 @@ var _lbl_pen_exercise: Label
 var _lbl_pen_reps: Label
 var _lbl_pen_weight: Label
 var _lbl_pen_speed: Label
+var _lbl_pen_media: Label
 var _lbl_pen_timer: Label
 var _btn_pen_done: Button
 
@@ -164,6 +165,13 @@ func _build_penalty_panel() -> void:
 	_lbl_pen_speed.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(_lbl_pen_speed)
 
+	_lbl_pen_media = Label.new()
+	_lbl_pen_media.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_pen_media.add_theme_font_size_override("font_size", 14)
+	_lbl_pen_media.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+	_lbl_pen_media.visible = false
+	vbox.add_child(_lbl_pen_media)
+
 	_lbl_pen_timer = Label.new()
 	_lbl_pen_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_pen_timer.add_theme_font_size_override("font_size", 22)
@@ -214,6 +222,12 @@ func show_clash_result(data: Dictionary) -> void:
 		_lbl_pen_reps.text = "%d reps" % data.get("reps", 10)
 		_lbl_pen_weight.text = "Weight: %s" % data.get("weight", "2kg")
 		_lbl_pen_speed.text = "Do them %s" % data.get("speed", "normal speed")
+		var media_path: String = str(data.get("media_path", ""))
+		if media_path != "":
+			_lbl_pen_media.text = "[Media: %s]" % media_path
+			_lbl_pen_media.visible = true
+		else:
+			_lbl_pen_media.visible = false
 		_lbl_pen_timer.text = "%.0f" % _penalty_timer
 		_btn_pen_done.disabled = true
 		_awaiting_transition = true

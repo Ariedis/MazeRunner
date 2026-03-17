@@ -223,8 +223,8 @@ func get_custom_penalties() -> Array:
 
 
 ## Add a custom penalty. Returns "" on success, or error message.
-func add_custom_penalty(exercise: String, reps: int) -> String:
-	var err := validate_penalty(exercise, reps)
+func add_custom_penalty(exercise: String, reps: int, media_path: String = "") -> String:
+	var err := validate_penalty(exercise, reps, media_path)
 	if err != "":
 		return err
 
@@ -234,6 +234,7 @@ func add_custom_penalty(exercise: String, reps: int) -> String:
 		"id": id,
 		"exercise": exercise,
 		"reps": reps,
+		"media_path": media_path,
 	}
 	penalties.append(entry)
 	_save_json_array(PENALTIES_PATH, "penalties", penalties)
@@ -241,8 +242,8 @@ func add_custom_penalty(exercise: String, reps: int) -> String:
 
 
 ## Update an existing custom penalty by id.
-func update_custom_penalty(id: String, exercise: String, reps: int) -> String:
-	var err := validate_penalty(exercise, reps)
+func update_custom_penalty(id: String, exercise: String, reps: int, media_path: String = "") -> String:
+	var err := validate_penalty(exercise, reps, media_path)
 	if err != "":
 		return err
 
@@ -251,6 +252,7 @@ func update_custom_penalty(id: String, exercise: String, reps: int) -> String:
 		if penalties[i].get("id", "") == id:
 			penalties[i]["exercise"] = exercise
 			penalties[i]["reps"] = reps
+			penalties[i]["media_path"] = media_path
 			_save_json_array(PENALTIES_PATH, "penalties", penalties)
 			return ""
 	return "Penalty not found"
@@ -268,7 +270,7 @@ func remove_custom_penalty(id: String) -> bool:
 
 
 ## Validate penalty fields. Returns "" if valid, or error message.
-func validate_penalty(exercise: String, reps: int) -> String:
+func validate_penalty(exercise: String, reps: int, media_path: String = "") -> String:
 	if exercise.strip_edges().is_empty():
 		return "Exercise name is required"
 	if exercise.length() > MAX_TITLE_LENGTH:
@@ -277,6 +279,10 @@ func validate_penalty(exercise: String, reps: int) -> String:
 		return "Reps must be at least %d" % MIN_REPS
 	if reps > MAX_REPS:
 		return "Reps must be at most %d" % MAX_REPS
+	if media_path != "":
+		var ext := media_path.get_extension().to_lower()
+		if ext not in VALID_MEDIA_EXTENSIONS:
+			return "Media must be gif, mp4, or webm"
 	return ""
 
 
