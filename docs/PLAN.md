@@ -21,8 +21,8 @@
 | 8 | Clash System | COMPLETE | [spec](phases/phase-8-clash-system.md) |
 | 9 | UI & Menus | COMPLETE | [spec](phases/phase-9-ui-menus.md) |
 | 10 | Save & Load System | COMPLETE | [spec](phases/phase-10-save-load.md) |
-| 11 | Settings & Customization | NOT STARTED | [spec](phases/phase-11-settings.md) |
-| 12 | Polish & Integration | NOT STARTED | [spec](phases/phase-12-polish.md) |
+| 11 | Settings & Customization | COMPLETE | [spec](phases/phase-11-settings.md) |
+| 12 | Polish & Integration | COMPLETE | [spec](phases/phase-12-polish.md) |
 
 ---
 
@@ -63,12 +63,16 @@
 - **Clash System:** Player (collision layer 2) and AI (layer 4) use non-overlapping masks so they phase through each other — no blocking. Clash triggers are distance-based: `GameScene._check_clashes()` checks all character pairs every frame. Player-AI clashes show `ClashOverlay`; AI-AI clashes resolve instantly. Both characters receive a cooldown equal to `CLASH_COOLDOWN_SECONDS + penalty_duration` after a clash. `ClashResolver` is a pure-logic class (static methods) for dice rolling and penalty parameter lookup.
 - **Save Format:** JSON serialization of full game state to `user://saves/` directory. Maze is regenerated from seed on load; all runtime state (positions, stats, fog, AI brain, locations) is restored on top. See Phase 10 entry below for details.
 - **Code-Driven UI:** All UI elements (overlays, HUD, menus) are built entirely in GDScript with no `.tscn` node hierarchies — reduces scene-file maintenance and keeps layout logic version-controlled alongside logic. `TaskOverlay`, `ResultsScreen`, `ClashOverlay` (Phases 5–8), `GameHUD`, `PauseMenu`, and `NewGameScreen` (Phase 9) all follow this pattern.
-- **Scene Management:** Container-swap pattern — all scenes load into a `SceneContainer` node inside `Main.tscn`; autoloads (Enums → SignalBus → GameState → SceneManager → SaveManager) remain alive across every transition
+- **Scene Management:** Container-swap pattern — all scenes load into a `SceneContainer` node inside `Main.tscn`; autoloads (Enums → SignalBus → GameState → SceneManager → SaveManager → SettingsManager) remain alive across every transition
 - **HUD & Pause:** `GameHUD` (CanvasLayer z=5) owns the portrait, stat labels, energy bar, and item indicator. `PauseMenu` (CanvasLayer z=10) is toggled by `GameScene._unhandled_input()` on Escape; blocked while task/clash overlays are active. CanvasLayer z-ordering: HUD (5) → PauseMenu (10) → ClashOverlay (15) → ResultsScreen (20) → TaskOverlay (highest) → SaveSlotPanel (30).
 - **Character Creator Logic:** `CharacterCreatorLogic` (pure `RefCounted`) manages stat allocation with budget constraints independently of any UI node — keeps logic unit-testable without a running scene.
 - **New Game Config Validation:** `NewGameConfig` (static methods on `RefCounted`) validates the config dict before `GameState` is written — item selected, opponent count in bounds, difficulty array length matches opponent count.
 - **GameState `item_id`:** Stored as a `String` (e.g. `"golden_key"`) matching `ItemRegistry` IDs. Default is `""` (empty = not set). Previously was `-1` (int) — changed in Phase 9 to align with `ItemRegistry`.
 - **Save/Load System (Phase 10):** `SaveManager` autoload handles JSON serialization of full game state to `user://saves/` directory. Five save slots with metadata (timestamp, map size, progress). `SaveSlotPanel` provides code-driven UI for slot selection with overwrite confirmation and delete. `GameState.queue_load()` stages save data; `GameScene._apply_save_data()` restores all runtime state (player position/stats, AI brain states, fog, locations) after the maze is regenerated from seed. Continue button loads most recent save by timestamp. Corrupt/empty save files are handled gracefully (null return, no crash).
+
+- **Settings & Custom Content (Phase 11):** `SettingsManager` autoload persists display settings (resolution, fullscreen) and sound volume placeholders to `user://settings.json`. `CustomContentManager` (RefCounted) handles CRUD for custom tasks (`user://custom/tasks.json`), items (`user://custom/items.json`), and clash penalties (`user://custom/penalties.json`) with full validation (title/desc length, duration range, media extension, reps range). `SettingsScreen` provides a tabbed code-driven UI accessible from Main Menu. Integration: `TaskLoader.load_user_tasks()` reads custom task manifest; `ItemRegistry._load_custom_items()` loads custom items on init; `ClashTaskLoader.load_active_task()` picks random custom penalty if available. Defaults always remain available.
+
+- **Polish & Integration (Phase 12):** Fixed exit interaction double-win bug (`_handle_exit_interaction` now sets `_match_over = true` and guards against re-entry). `WinConditionManager` gained a `_resolved` flag preventing duplicate `match_ended` signals when multiple AI reach the exit simultaneously. Added `_pending_ai_clashes` queue in `GameScene` — AI-AI clashes detected during an active player-AI clash overlay are deferred and resolved after the overlay closes. Save-during-overlay guard added to `_on_pause_save()` (explicit check for `_match_over`, `_clash_active`, `_task_overlay.visible`). Comprehensive integration test suite (`test_polish.gd`, 34 tests) validates the complete game loop, edge cases, settings persistence, and custom content integration.
 
 ### Suggested Additional Features (Future)
 - **Power-ups:** Temporary speed boost, energy refill, reveal nearby area

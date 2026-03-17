@@ -5,6 +5,7 @@ const SCENE_NEW_GAME_SCREEN: String = "res://scenes/menus/NewGameScreen.tscn"
 const SCENE_PLACEHOLDER_A: String = "res://scenes/placeholders/PlaceholderA.tscn"
 const SCENE_PLACEHOLDER_B: String = "res://scenes/placeholders/PlaceholderB.tscn"
 const SCENE_GAME_SCENE: String = "res://scenes/game/GameScene.tscn"
+const SCENE_SETTINGS: String = "res://scenes/menus/SettingsScreen.tscn"
 
 var _scene_container: Node = null
 
@@ -64,3 +65,7 @@ func go_to_placeholder_b() -> void:
 
 func go_to_game_scene() -> void:
 	_load_scene(SCENE_GAME_SCENE)
+
+
+func go_to_settings() -> void:
+	_load_scene(SCENE_SETTINGS)

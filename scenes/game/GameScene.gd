@@ -18,6 +18,7 @@ var _tile_size: int = 0
 var _clash_overlay: ClashOverlay
 var _clash_active: bool = false
 var _clash_rng: RandomNumberGenerator
+var _pending_ai_clashes: Array = []  # AI-AI clashes deferred while player clash is active.
 var _hud: GameHUD
 var _pause_menu: PauseMenu
 var _save_slot_panel: SaveSlotPanel
@@ -242,10 +243,12 @@ func _spawn_exit_marker(tile_size: int) -> void:
 
 
 func _handle_exit_interaction() -> void:
+	if _match_over:
+		return
 	var has_item: bool = GameState.player.get("has_item", false)
 	var result := _win_condition.check_player_at_exit(has_item)
 	if result == WinConditionManager.Result.PLAYER_WIN:
-		pass
+		_match_over = true
 	else:
 		_hud.show_rejection_message("You need your item to exit!")
 
@@ -287,6 +290,7 @@ func _on_match_ended(result: String) -> void:
 	if _match_over:
 		return
 	_match_over = true
+	_pending_ai_clashes.clear()
 	GameState.current_state = Enums.GameState.GAME_OVER
 
 	var elapsed_sec := float(Time.get_ticks_msec() - _start_time_msec) / 1000.0
@@ -314,6 +318,8 @@ func _on_pause_resume() -> void:
 
 
 func _on_pause_save() -> void:
+	if _match_over or _clash_active or _task_overlay.visible:
+		return
 	_save_slot_panel.show_panel()
 
 
@@ -436,6 +442,20 @@ func _apply_save_data(data: Dictionary) -> void:
 func _check_clashes() -> void:
 	var clash_dist := float(_tile_size) * 1.0
 
+	# Process any deferred AI-AI clashes from when a player clash was active.
+	if not _clash_active and _pending_ai_clashes.size() > 0:
+		var pending := _pending_ai_clashes.duplicate()
+		_pending_ai_clashes.clear()
+		for pair in pending:
+			var ai_a: AIOpponent = pair[0]
+			var ai_b: AIOpponent = pair[1]
+			if ai_a._clash_cooldown > 0.0 or ai_a.brain.is_in_penalty():
+				continue
+			if ai_b._clash_cooldown > 0.0 or ai_b.brain.is_in_penalty():
+				continue
+			if ai_a.global_position.distance_to(ai_b.global_position) <= clash_dist:
+				ai_a.resolve_ai_ai_clash(ai_b)
+
 	# Player vs AI opponents.
 	if not _clash_active and _player._clash_cooldown <= 0.0 and not _player._is_frozen:
 		for ai in _ai_opponents:
@@ -456,7 +476,10 @@ func _check_clashes() -> void:
 			if ai_b._clash_cooldown > 0.0 or ai_b.brain.is_in_penalty():
 				continue
 			if ai_a.global_position.distance_to(ai_b.global_position) <= clash_dist:
-				ai_a.resolve_ai_ai_clash(ai_b)
+				if _clash_active:
+					_pending_ai_clashes.append([ai_a, ai_b])
+				else:
+					ai_a.resolve_ai_ai_clash(ai_b)
 				break
 
 

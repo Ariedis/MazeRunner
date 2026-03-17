@@ -40,22 +40,36 @@ func load_default_tasks() -> Array[TaskData]:
 
 func load_user_tasks() -> Array[TaskData]:
 	var tasks: Array[TaskData] = []
+
+	# Load from legacy individual JSON files in user://tasks/
 	var dir := DirAccess.open("user://tasks/")
-	if dir == null:
-		return tasks
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".json"):
-			var full_path := "user://tasks/" + file_name
-			var file := FileAccess.open(full_path, FileAccess.READ)
-			if file != null:
-				var json_text := file.get_as_text()
-				file.close()
-				var task := _parse_task_json(json_text)
-				if task != null:
-					tasks.append(task)
-		file_name = dir.get_next()
+	if dir != null:
+		dir.list_dir_begin()
+		var file_name := dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and file_name.ends_with(".json"):
+				var full_path := "user://tasks/" + file_name
+				var file := FileAccess.open(full_path, FileAccess.READ)
+				if file != null:
+					var json_text := file.get_as_text()
+					file.close()
+					var task := _parse_task_json(json_text)
+					if task != null:
+						tasks.append(task)
+			file_name = dir.get_next()
+
+	# Load from custom content manifest (Phase 11)
+	var mgr := CustomContentManager.new()
+	var custom := mgr.get_custom_tasks()
+	for entry in custom:
+		var task := TaskData.new()
+		task.title = str(entry.get("title", ""))
+		task.description = str(entry.get("description", ""))
+		task.duration_seconds = float(entry.get("duration_seconds", 30.0))
+		task.media_path = str(entry.get("media_path", ""))
+		if task.title != "" and task.duration_seconds > 0.0:
+			tasks.append(task)
+
 	return tasks
 
 

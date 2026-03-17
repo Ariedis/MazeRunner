@@ -8,6 +8,7 @@ func _ready() -> void:
 	$VBoxContainer/BtnNewGame.pressed.connect(_on_new_game)
 	$VBoxContainer/BtnContinue.pressed.connect(_on_continue)
 	$VBoxContainer/BtnLoadGame.pressed.connect(_on_load_game)
+	$VBoxContainer/BtnSettings.pressed.connect(_on_settings)
 	$VBoxContainer/BtnQuit.pressed.connect(_on_quit)
 
 	# Continue is only enabled when a save exists.
@@ -42,6 +43,10 @@ func _on_load_slot_selected(slot: int) -> void:
 		return
 	GameState.queue_load(save)
 	SceneManager.go_to_game_scene()
+
+
+func _on_settings() -> void:
+	SceneManager.go_to_settings()
 
 
 func _on_quit() -> void:

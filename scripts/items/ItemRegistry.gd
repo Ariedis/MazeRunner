@@ -19,6 +19,18 @@ func _init() -> void:
 		item.name = entry["name"]
 		item.is_custom = false
 		_items.append(item)
+	_load_custom_items()
+
+
+## Load custom items from the Phase 11 custom content manifest.
+func _load_custom_items() -> void:
+	var mgr := CustomContentManager.new()
+	var custom := mgr.get_custom_items()
+	for entry in custom:
+		var id: String = entry.get("id", "")
+		var item_name: String = entry.get("name", "")
+		if id != "" and item_name != "" and get_item(id) == null:
+			add_custom(id, item_name)
 
 
 func get_all() -> Array[ItemData]:

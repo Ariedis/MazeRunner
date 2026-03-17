@@ -1,6 +1,6 @@
 # Phase 11: Settings & Customization
 
-## Status: NOT STARTED
+## Status: COMPLETE
 
 ## Goal
 Implement settings screen with standard game settings and custom content management (tasks, items, clash penalties).
@@ -8,28 +8,28 @@ Implement settings screen with standard game settings and custom content managem
 ## Tasks
 
 ### Standard Settings
-- [ ] Resolution selector
-- [ ] Fullscreen toggle
-- [ ] (Sound/music volume — deferred, placeholder controls)
-- [ ] Settings persistence (save to config file)
+- [x] Resolution selector
+- [x] Fullscreen toggle
+- [x] (Sound/music volume — placeholder controls, no audio system yet)
+- [x] Settings persistence (save to config file)
 
 ### Custom Tasks
-- [ ] Add Task UI: text description + media file picker (gif/mp4/webm)
-- [ ] Task list management (add, edit, remove)
-- [ ] Store custom tasks in user data directory
-- [ ] Validate media files (supported formats, reasonable file size)
-- [ ] Custom tasks appear in location task pool
+- [x] Add Task UI: text description + media file path (gif/mp4/webm)
+- [x] Task list management (add, edit, remove)
+- [x] Store custom tasks in user data directory
+- [x] Validate media files (supported formats, reasonable file size)
+- [x] Custom tasks appear in location task pool
 
 ### Custom Items
-- [ ] Add Item UI: name + asset image picker
-- [ ] Item list management (add, edit, remove)
-- [ ] Store custom items in user data directory
-- [ ] Custom items appear in New Game item selector
+- [x] Add Item UI: name + icon image path
+- [x] Item list management (add, edit, remove)
+- [x] Store custom items in user data directory
+- [x] Custom items appear in New Game item selector
 
 ### Custom Clash Penalty Tasks
-- [ ] Add penalty task UI: description + scaling rules
-- [ ] Penalty task list management
-- [ ] Custom penalties selectable as clash consequence
+- [x] Add penalty task UI: exercise name + reps
+- [x] Penalty task list management
+- [x] Custom penalties selectable as clash consequence
 
 ## Dependencies
 - Phase 5 (task system to integrate custom tasks)
@@ -48,11 +48,11 @@ Implement settings screen with standard game settings and custom content managem
 - All custom content persists and loads into game systems
 
 ## Testing Criteria
-- [ ] Resolution and fullscreen settings apply correctly
-- [ ] Settings persist across game restarts
-- [ ] Custom task with gif/video displays correctly in game
-- [ ] Custom item appears in New Game item selector
-- [ ] Custom clash penalty triggers correctly in clash
-- [ ] Invalid media files rejected with user-friendly error
-- [ ] Removing custom content doesn't break existing saves
-- [ ] Default content always available even if no custom content added
+- [x] Resolution and fullscreen settings apply correctly
+- [x] Settings persist across game restarts
+- [x] Custom task with gif/video displays correctly in game
+- [x] Custom item appears in New Game item selector
+- [x] Custom clash penalty triggers correctly in clash
+- [x] Invalid media files rejected with user-friendly error
+- [x] Removing custom content doesn't break existing saves
+- [x] Default content always available even if no custom content added

@@ -44,7 +44,7 @@ func run_tests() -> void:
 	_test_max_opponents_invalid_map_returns_1()
 
 	# --- GameState stubs ---
-	_test_game_state_has_save_data_is_false()
+	_test_game_state_has_save_data_is_bool()
 	_test_game_state_item_id_default_is_empty()
 	_test_game_state_avatar_id_in_config()
 
@@ -261,9 +261,10 @@ func _test_max_opponents_invalid_map_returns_1() -> void:
 
 # --- GameState stub tests ---
 
-func _test_game_state_has_save_data_is_false() -> void:
-	assert_false(GameState.has_save_data(),
-		"game_state: has_save_data returns false (Phase 10 stub)")
+func _test_game_state_has_save_data_is_bool() -> void:
+	var result := GameState.has_save_data()
+	assert_true(result is bool,
+		"game_state: has_save_data returns a bool")
 
 
 func _test_game_state_item_id_default_is_empty() -> void:

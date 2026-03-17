@@ -36,7 +36,6 @@ disabled = true
 
 [node name="BtnSettings" type="Button" parent="VBoxContainer"]
 text = "Settings"
-disabled = true
 
 [node name="BtnQuit" type="Button" parent="VBoxContainer"]
 text = "Quit"

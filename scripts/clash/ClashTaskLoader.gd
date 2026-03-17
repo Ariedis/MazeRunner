@@ -12,8 +12,22 @@ const USER_TASK_PATH: String = "user://clash_tasks.json"
 
 
 ## Returns the active penalty task as a Dictionary { "exercise": String, "reps": int }.
-## Loads from user://clash_tasks.json if it exists and is valid; otherwise returns default.
+## Picks a random custom penalty if available; falls back to legacy user file;
+## otherwise returns default.
 static func load_active_task() -> Dictionary:
+	# Phase 11: load from custom content manifest
+	var mgr := CustomContentManager.new()
+	var penalties := mgr.get_custom_penalties()
+	if not penalties.is_empty():
+		var idx := randi() % penalties.size()
+		var p: Dictionary = penalties[idx]
+		if p.has("exercise") and p.has("reps"):
+			return {
+				"exercise": str(p["exercise"]),
+				"reps": int(p["reps"]),
+			}
+
+	# Legacy: single custom task file
 	if FileAccess.file_exists(USER_TASK_PATH):
 		var file := FileAccess.open(USER_TASK_PATH, FileAccess.READ)
 		if file != null:

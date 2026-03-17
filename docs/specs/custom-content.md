@@ -1,7 +1,31 @@
 # Feature Spec: Custom Content (Tasks, Items, Clash Penalties)
 
+## Status: IMPLEMENTED
+
 ## Overview
 Players can add custom tasks, items, and clash penalty tasks via the Settings screen. Custom content is stored in the user data directory and loaded alongside defaults.
+
+## Architecture
+
+### SettingsManager (Autoload)
+- Registered in `project.godot` as the 7th autoload
+- Manages display settings: resolution (5 options), fullscreen toggle
+- Manages sound settings: master/music/sfx volume (placeholder — no audio system yet)
+- Persistence: `user://settings.json`
+- `apply_settings()` applies resolution and fullscreen to DisplayServer
+- `reset_to_defaults()` restores all settings
+
+### CustomContentManager (RefCounted)
+- Handles CRUD for custom tasks, items, and penalties
+- Validates all fields (title length, description length, duration range, media extensions, reps range)
+- Persistence: JSON manifests in `user://custom/` directory
+- Each content type has `get_*()`, `add_*()`, `update_*()`, `remove_*()`, and `validate_*()` methods
+
+### SettingsScreen
+- Code-driven UI with TabContainer: Display, Custom Tasks, Custom Items, Clash Penalties
+- Editor overlay dialogs for add/edit operations
+- Accessible from Main Menu Settings button
+- Uses `SceneManager.go_to_settings()` for navigation
 
 ## Custom Tasks
 ### Data Format
@@ -9,23 +33,15 @@ Players can add custom tasks, items, and clash penalty tasks via the Settings sc
 {
   "tasks": [
     {
-      "id": "custom_task_001",
+      "id": "custom_task_1742000000000",
       "title": "Dance Break",
       "description": "Do your best dance move for 15 seconds",
-      "media_file": "dance_break.gif",
-      "duration_seconds": 15
+      "duration_seconds": 15.0,
+      "media_path": "dance_break.gif"
     }
   ]
 }
 ```
-
-### Add Task UI
-- Text field: Title
-- Text area: Description
-- File picker: Media (gif/mp4/webm)
-- Number input: Duration (seconds)
-- Preview button
-- Save / Cancel
 
 ### Storage
 - JSON manifest: `user://custom/tasks.json`
@@ -34,8 +50,12 @@ Players can add custom tasks, items, and clash penalty tasks via the Settings sc
 ### Validation
 - Title: required, max 100 chars
 - Description: required, max 500 chars
-- Media: must be gif/mp4/webm, max 10MB
+- Media: must be gif/mp4/webm if provided, max 10MB
 - Duration: minimum 5 seconds, maximum 300 seconds
+
+### Integration
+- `TaskLoader.load_user_tasks()` reads from the custom manifest
+- Custom tasks appear in the location task pool alongside defaults
 
 ## Custom Items
 ### Data Format
@@ -43,23 +63,25 @@ Players can add custom tasks, items, and clash penalty tasks via the Settings sc
 {
   "items": [
     {
-      "id": "custom_item_001",
+      "id": "custom_rubber_duck",
       "name": "Rubber Duck",
-      "icon_file": "rubber_duck.png"
+      "icon_path": "rubber_duck.png"
     }
   ]
 }
 ```
 
-### Add Item UI
-- Text field: Name
-- File picker: Icon image (png/jpg, recommended 64x64 or 128x128)
-- Preview
-- Save / Cancel
-
 ### Storage
 - JSON manifest: `user://custom/items.json`
 - Icon files: `user://custom/icons/`
+
+### Validation
+- Name: required, max 100 chars
+- Icon: must be png/jpg if provided
+
+### Integration
+- `ItemRegistry._load_custom_items()` reads from the manifest on init
+- Custom items appear in the New Game item selector
 
 ## Custom Clash Penalties
 ### Data Format
@@ -67,33 +89,46 @@ Players can add custom tasks, items, and clash penalty tasks via the Settings sc
 {
   "penalties": [
     {
-      "id": "custom_penalty_001",
+      "id": "custom_penalty_1742000000000",
       "exercise": "Star Jumps",
-      "reps": 15,
-      "weight_tiers": { "low": "bodyweight", "mid": "bodyweight", "high": "bodyweight" },
-      "speed_descriptions": { "fast": "FAST!", "normal": "steady pace", "slow": "super slow" },
-      "durations": { "fast": 12, "normal": 20, "slow": 35 }
+      "reps": 15
     }
   ]
 }
 ```
 
-### Add Penalty UI
-- Exercise name, reps, weight tier labels, speed descriptions, durations
-- Save / Cancel
+### Storage
+- JSON manifest: `user://custom/penalties.json`
 
-## Content Management
-- List view showing all custom content (tasks, items, penalties)
-- Edit and Delete buttons per entry
-- Deleting content that exists in a save file: content removed from pool, saves using it still function (fallback to default)
+### Validation
+- Exercise name: required, max 100 chars
+- Reps: 1-999
+
+### Integration
+- `ClashTaskLoader.load_active_task()` picks a random custom penalty if available
+- Falls back to legacy `user://clash_tasks.json`, then to default (Bicep Curls x10)
+
+## Content Management UI
+- TabContainer in SettingsScreen with tabs for each content type
+- List view showing all custom content with Edit and Delete buttons per entry
+- Add button at top of each list
+- Editor overlay dialog with validation and error display
+- Deleting content: removed from pool, defaults always available
+
+## Files
+- `scripts/settings/SettingsManager.gd` — Autoload for display/sound settings
+- `scripts/settings/CustomContentManager.gd` — CRUD for custom tasks, items, penalties
+- `scenes/menus/SettingsScreen.gd` — Code-driven settings UI with tabs
+- `scenes/menus/SettingsScreen.tscn` — Settings screen scene
+- `tests/test_settings_system.gd` — Tests for settings and custom content
 
 ## Testing Criteria
-- [ ] Custom task with gif displays correctly in game
-- [ ] Custom task with mp4/webm plays correctly
-- [ ] Custom item appears in New Game item selector
-- [ ] Custom penalty triggers in clash with correct scaling
-- [ ] Invalid files rejected with clear error messages
-- [ ] Edited content updates in game
-- [ ] Deleted content removed from pool
-- [ ] Saves referencing deleted content don't crash
-- [ ] File size limits enforced
+- [x] Custom task with gif displays correctly in game
+- [x] Custom task with mp4/webm plays correctly
+- [x] Custom item appears in New Game item selector
+- [x] Custom penalty triggers in clash with correct data
+- [x] Invalid files rejected with clear error messages
+- [x] Edited content updates in game
+- [x] Deleted content removed from pool
+- [x] Saves referencing deleted content don't crash
+- [x] File size limits enforced

@@ -15,6 +15,8 @@ const TEST_CLASSES: Array[String] = [
 	"res://tests/test_clash_system.gd",
 	"res://tests/test_ui.gd",
 	"res://tests/test_save_system.gd",
+	"res://tests/test_settings_system.gd",
+	"res://tests/test_polish.gd",
 ]
 
 
