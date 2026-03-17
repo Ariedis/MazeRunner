@@ -5,6 +5,9 @@ signal resume_requested()
 signal save_requested()
 signal quit_to_menu_requested()
 
+var _overlay: ColorRect
+var _panel: Panel
+
 
 func _ready() -> void:
 	layer = 10
@@ -13,26 +16,23 @@ func _ready() -> void:
 
 
 func _build_ui() -> void:
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.55)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
+	_overlay = UIHelpers.create_dim_overlay(0.55)
+	add_child(_overlay)
 
-	var panel := Panel.new()
-	panel.custom_minimum_size = Vector2(300, 230)
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -150
-	panel.offset_top = -115
-	panel.offset_right = 150
-	panel.offset_bottom = 115
-	add_child(panel)
+	_panel = Panel.new()
+	_panel.custom_minimum_size = Vector2(300, 230)
+	_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_panel.offset_left = -150
+	_panel.offset_top = -115
+	_panel.offset_right = 150
+	_panel.offset_bottom = 115
+	add_child(_panel)
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 14)
-	panel.add_child(vbox)
+	_panel.add_child(vbox)
 
 	# Margin so content doesn't touch panel edges
 	var margin := MarginContainer.new()
@@ -47,33 +47,47 @@ func _build_ui() -> void:
 	inner.alignment = BoxContainer.ALIGNMENT_CENTER
 	margin.add_child(inner)
 
-	var title := Label.new()
-	title.text = "PAUSED"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
-	inner.add_child(title)
+	var title_container := UIHelpers.create_title("PAUSED", 28)
+	inner.add_child(title_container)
 
 	var btn_resume := Button.new()
 	btn_resume.text = "Resume"
 	btn_resume.pressed.connect(_on_resume)
+	ButtonFX.apply(btn_resume)
 	inner.add_child(btn_resume)
 
 	var btn_save := Button.new()
 	btn_save.text = "Save Game"
 	btn_save.pressed.connect(_on_save)
+	ButtonFX.apply(btn_save)
 	inner.add_child(btn_save)
 
 	var btn_quit := Button.new()
 	btn_quit.text = "Quit to Menu"
 	btn_quit.pressed.connect(_on_quit)
+	ButtonFX.apply(btn_quit)
 	inner.add_child(btn_quit)
 
 
 func show_menu() -> void:
 	visible = true
+	_overlay.modulate.a = 0.0
+	_panel.scale = Vector2(0.9, 0.9)
+	_panel.modulate.a = 0.0
+	_panel.pivot_offset = _panel.size / 2.0
+
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
 func hide_menu() -> void:
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 0.0, 0.15)
+	tw.tween_property(_panel, "modulate:a", 0.0, 0.15)
+	tw.tween_property(_panel, "scale", Vector2(0.9, 0.9), 0.15)
+	await tw.finished
 	visible = false
 
 

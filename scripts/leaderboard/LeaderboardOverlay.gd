@@ -2,11 +2,12 @@ class_name LeaderboardOverlay
 extends CanvasLayer
 
 ## Code-driven leaderboard overlay with tabs for Small / Medium / Large.
-## Attached as child of whatever scene needs it; close button removes it.
 
 const SIZE_KEYS: Array = [Enums.MapSize.SMALL, Enums.MapSize.MEDIUM, Enums.MapSize.LARGE]
 const SIZE_NAMES: Array = ["Small", "Medium", "Large"]
 
+var _overlay: ColorRect
+var _panel: Panel
 var _tab_buttons: Array = []
 var _tab_panels: Array = []
 var _current_tab: int = 0
@@ -17,22 +18,30 @@ func _ready() -> void:
 	_build_ui()
 	_show_tab(0)
 
+	# Animate in
+	_overlay.modulate.a = 0.0
+	_panel.modulate.a = 0.0
+	_panel.scale = Vector2(0.9, 0.9)
+	_panel.pivot_offset = _panel.size / 2.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
 
 func _build_ui() -> void:
-	var bg := ColorRect.new()
-	bg.color = Color(0.0, 0.0, 0.0, 0.7)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	_overlay = UIHelpers.create_dim_overlay(0.7)
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_overlay)
 
-	var panel := Panel.new()
-	panel.custom_minimum_size = Vector2(600, 440)
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left  = -300
-	panel.offset_top   = -220
-	panel.offset_right =  300
-	panel.offset_bottom = 220
-	add_child(panel)
+	_panel = Panel.new()
+	_panel.custom_minimum_size = Vector2(600, 440)
+	_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_panel.offset_left  = -300
+	_panel.offset_top   = -220
+	_panel.offset_right =  300
+	_panel.offset_bottom = 220
+	add_child(_panel)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left",   16)
@@ -40,7 +49,7 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_top",    12)
 	margin.add_theme_constant_override("margin_bottom", 12)
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.add_child(margin)
+	_panel.add_child(margin)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -54,6 +63,8 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "LEADERBOARD"
 	title.add_theme_font_size_override("font_size", 24)
+	if UITheme.font_title:
+		title.add_theme_font_override("font", UITheme.font_title)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
@@ -62,6 +73,7 @@ func _build_ui() -> void:
 	btn_close.text = "X"
 	btn_close.custom_minimum_size = Vector2(32, 0)
 	btn_close.pressed.connect(queue_free)
+	ButtonFX.apply(btn_close)
 	title_row.add_child(btn_close)
 
 	vbox.add_child(HSeparator.new())
@@ -76,6 +88,7 @@ func _build_ui() -> void:
 		btn.text = SIZE_NAMES[i]
 		btn.custom_minimum_size = Vector2(120, 0)
 		btn.pressed.connect(_show_tab.bind(i))
+		ButtonFX.apply(btn)
 		tab_row.add_child(btn)
 		_tab_buttons.append(btn)
 
@@ -102,7 +115,7 @@ func _build_ui() -> void:
 		if entries.is_empty():
 			var empty_lbl := Label.new()
 			empty_lbl.text = "No entries yet."
-			empty_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+			empty_lbl.add_theme_color_override("font_color", UITheme.TEXT_DIM)
 			inner.add_child(empty_lbl)
 		else:
 			for j in entries.size():
@@ -142,6 +155,8 @@ func _make_row(rank: String, time: String, date: String, sz: String, opp: String
 		lbl.custom_minimum_size = Vector2(widths[i], 0)
 		if bold:
 			lbl.add_theme_font_size_override("font_size", 14)
-			lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+			lbl.add_theme_color_override("font_color", UITheme.HEADER_GOLD)
+			if UITheme.font_title:
+				lbl.add_theme_font_override("font", UITheme.font_title)
 		row.add_child(lbl)
 	return row

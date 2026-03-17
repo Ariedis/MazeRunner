@@ -25,7 +25,7 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.08, 0.12)
+	bg.color = UITheme.BG_DARK
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
@@ -50,11 +50,8 @@ func _build_ui() -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(vbox)
 
-	var title := Label.new()
-	title.text = "SETTINGS"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
-	vbox.add_child(title)
+	var title_container := UIHelpers.create_title("SETTINGS", 26)
+	vbox.add_child(title_container)
 
 	_tab_container = TabContainer.new()
 	_tab_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -71,7 +68,7 @@ func _build_ui() -> void:
 
 	# Error label
 	_error_label = Label.new()
-	_error_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+	_error_label.add_theme_color_override("font_color", UITheme.ERROR)
 	_error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_error_label.visible = false
 	vbox.add_child(_error_label)
@@ -86,6 +83,7 @@ func _build_ui() -> void:
 	btn_back.text = "Back"
 	btn_back.custom_minimum_size = Vector2(110, 0)
 	btn_back.pressed.connect(_on_back)
+	ButtonFX.apply(btn_back)
 	btn_row.add_child(btn_back)
 
 
@@ -380,7 +378,7 @@ func _show_task_editor(id: String, title: String, desc: String, duration: float,
 	vbox.add_child(media_input)
 
 	var err_lbl := Label.new()
-	err_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+	err_lbl.add_theme_color_override("font_color", UITheme.ERROR)
 	err_lbl.visible = false
 	vbox.add_child(err_lbl)
 
@@ -455,7 +453,7 @@ func _show_item_editor(id: String, item_name: String, icon: String) -> void:
 	vbox.add_child(icon_input)
 
 	var err_lbl := Label.new()
-	err_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+	err_lbl.add_theme_color_override("font_color", UITheme.ERROR)
 	err_lbl.visible = false
 	vbox.add_child(err_lbl)
 
@@ -538,7 +536,7 @@ func _show_penalty_editor(id: String, exercise: String, reps: int) -> void:
 	vbox.add_child(reps_row)
 
 	var err_lbl := Label.new()
-	err_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+	err_lbl.add_theme_color_override("font_color", UITheme.ERROR)
 	err_lbl.visible = false
 	vbox.add_child(err_lbl)
 
@@ -586,13 +584,15 @@ func _section_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", 16)
+	if UITheme.font_title:
+		lbl.add_theme_font_override("font", UITheme.font_title)
 	return lbl
 
 
 func _info_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	lbl.add_theme_color_override("font_color", UITheme.TEXT_DIM)
 	lbl.add_theme_font_size_override("font_size", 13)
 	return lbl
 
@@ -639,7 +639,7 @@ func _content_row(text: String, id: String, edit_cb: Callable, delete_cb: Callab
 
 func _create_editor_overlay() -> ColorRect:
 	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.75)
+	overlay.color = UITheme.OVERLAY_DIM
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)

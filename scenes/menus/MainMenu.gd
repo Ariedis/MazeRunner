@@ -2,10 +2,20 @@ extends Control
 
 var _load_panel: SaveSlotPanel = null
 var _leaderboard_overlay: LeaderboardOverlay = null
+var _title_label: Label = null
 
 
 func _ready() -> void:
 	GameState.current_state = Enums.GameState.MENU
+
+	# Add dark background
+	var bg := ColorRect.new()
+	bg.color = UITheme.BG_DARK
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	move_child(bg, 0)
+
 	$VBoxContainer/BtnNewGame.pressed.connect(_on_new_game)
 	$VBoxContainer/BtnContinue.pressed.connect(_on_continue)
 	$VBoxContainer/BtnLoadGame.pressed.connect(_on_load_game)
@@ -16,6 +26,12 @@ func _ready() -> void:
 	$VBoxContainer/BtnContinue.disabled = not GameState.has_save_data()
 	$VBoxContainer/BtnLoadGame.disabled = not GameState.has_save_data()
 
+	# Style the title with display font
+	_title_label = $VBoxContainer/LabelTitle
+	if UITheme.font_title:
+		_title_label.add_theme_font_override("font", UITheme.font_title)
+	_start_title_color_cycle()
+
 	# Add Leaderboard button before Quit.
 	var btn_leaderboard := Button.new()
 	btn_leaderboard.name = "BtnLeaderboard"
@@ -24,6 +40,24 @@ func _ready() -> void:
 	var vbox := $VBoxContainer
 	vbox.add_child(btn_leaderboard)
 	vbox.move_child(btn_leaderboard, $VBoxContainer/BtnQuit.get_index())
+
+	# Apply button micro-interactions
+	for child in vbox.get_children():
+		if child is Button:
+			ButtonFX.apply(child)
+
+
+func _start_title_color_cycle() -> void:
+	var colors := [
+		UITheme.ACCENT,
+		Color(0.6, 0.4, 1.0),
+		UITheme.GOLD,
+		Color(0.3, 0.8, 1.0),
+		UITheme.ACCENT,
+	]
+	var tw := create_tween().set_loops()
+	for c in colors:
+		tw.tween_property(_title_label, "theme_override_colors/font_color", c, 2.0)
 
 
 func _on_new_game() -> void:

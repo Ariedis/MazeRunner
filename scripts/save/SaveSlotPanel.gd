@@ -13,6 +13,9 @@ var _inner: VBoxContainer
 var _confirm_overlay: ColorRect = null
 var _pending_slot: int = -1
 
+var _overlay: ColorRect
+var _panel: Panel
+
 
 func _init(mode: int = Mode.SAVE) -> void:
 	_mode = mode
@@ -28,27 +31,39 @@ func show_panel() -> void:
 	_refresh_slots()
 	visible = true
 
+	_overlay.modulate.a = 0.0
+	_panel.modulate.a = 0.0
+	_panel.scale = Vector2(0.9, 0.9)
+	_panel.pivot_offset = _panel.size / 2.0
+
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
 
 func hide_panel() -> void:
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 0.0, 0.15)
+	tw.tween_property(_panel, "modulate:a", 0.0, 0.15)
+	tw.tween_property(_panel, "scale", Vector2(0.9, 0.9), 0.15)
+	await tw.finished
 	visible = false
 	_hide_confirm()
 
 
 func _build_ui() -> void:
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
+	_overlay = UIHelpers.create_dim_overlay(0.6)
+	add_child(_overlay)
 
-	var panel := Panel.new()
-	panel.custom_minimum_size = Vector2(420, 400)
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -210
-	panel.offset_top = -200
-	panel.offset_right = 210
-	panel.offset_bottom = 200
-	add_child(panel)
+	_panel = Panel.new()
+	_panel.custom_minimum_size = Vector2(420, 400)
+	_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_panel.offset_left = -210
+	_panel.offset_top = -200
+	_panel.offset_right = 210
+	_panel.offset_bottom = 200
+	add_child(_panel)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -56,17 +71,15 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_bottom", 12)
-	panel.add_child(margin)
+	_panel.add_child(margin)
 
 	_inner = VBoxContainer.new()
 	_inner.add_theme_constant_override("separation", 8)
 	margin.add_child(_inner)
 
-	var title := Label.new()
-	title.text = "Save Game" if _mode == Mode.SAVE else "Load Game"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
-	_inner.add_child(title)
+	var title_text := "Save Game" if _mode == Mode.SAVE else "Load Game"
+	var title_container := UIHelpers.create_title(title_text, 24)
+	_inner.add_child(title_container)
 
 	for slot in range(1, SaveManager.MAX_SLOTS + 1):
 		var row := HBoxContainer.new()
@@ -77,6 +90,7 @@ func _build_ui() -> void:
 		btn.text = "Slot %d — Empty" % slot
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.pressed.connect(_on_slot_pressed.bind(slot))
+		ButtonFX.apply(btn)
 		row.add_child(btn)
 		_slot_buttons.append(btn)
 
@@ -84,12 +98,14 @@ func _build_ui() -> void:
 		del_btn.text = "X"
 		del_btn.custom_minimum_size = Vector2(36, 0)
 		del_btn.pressed.connect(_on_delete_pressed.bind(slot))
+		ButtonFX.apply(del_btn)
 		row.add_child(del_btn)
 		_delete_buttons.append(del_btn)
 
 	var btn_back := Button.new()
 	btn_back.text = "Back"
 	btn_back.pressed.connect(_on_back)
+	ButtonFX.apply(btn_back)
 	_inner.add_child(btn_back)
 
 
@@ -144,10 +160,7 @@ func _show_confirm(slot: int) -> void:
 	if _confirm_overlay != null:
 		_confirm_overlay.queue_free()
 
-	_confirm_overlay = ColorRect.new()
-	_confirm_overlay.color = Color(0, 0, 0, 0.7)
-	_confirm_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_confirm_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_confirm_overlay = UIHelpers.create_dim_overlay(0.7)
 	add_child(_confirm_overlay)
 
 	var vbox := VBoxContainer.new()
@@ -174,11 +187,13 @@ func _show_confirm(slot: int) -> void:
 	var btn_yes := Button.new()
 	btn_yes.text = "Overwrite"
 	btn_yes.pressed.connect(_on_confirm_yes)
+	ButtonFX.apply(btn_yes)
 	row.add_child(btn_yes)
 
 	var btn_no := Button.new()
 	btn_no.text = "Cancel"
 	btn_no.pressed.connect(_on_confirm_no)
+	ButtonFX.apply(btn_no)
 	row.add_child(btn_no)
 
 

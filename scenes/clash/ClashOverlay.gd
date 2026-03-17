@@ -24,6 +24,7 @@ var _penalty_timer: float = 0.0
 var _penalty_active: bool = false
 
 # --- UI nodes ---
+var _overlay: ColorRect
 var _panel: Panel
 var _vbox: VBoxContainer
 
@@ -52,6 +53,9 @@ func _ready() -> void:
 	layer = 15
 	visible = false
 
+	_overlay = UIHelpers.create_dim_overlay(0.6)
+	add_child(_overlay)
+
 	_build_resolution_panel()
 	_build_penalty_panel()
 
@@ -73,11 +77,9 @@ func _build_resolution_panel() -> void:
 	_vbox.add_theme_constant_override("separation", 10)
 	_panel.add_child(_vbox)
 
-	_lbl_title = Label.new()
-	_lbl_title.text = "⚔  CLASH!  ⚔"
-	_lbl_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_lbl_title.add_theme_font_size_override("font_size", 28)
-	_vbox.add_child(_lbl_title)
+	var title_container := UIHelpers.create_title("⚔  CLASH!  ⚔", 28)
+	_vbox.add_child(title_container)
+	_lbl_title = title_container.get_meta("label")
 
 	# Side-by-side comparison row.
 	var hbox := HBoxContainer.new()
@@ -95,6 +97,8 @@ func _build_resolution_panel() -> void:
 	_lbl_vs.text = "VS"
 	_lbl_vs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_vs.add_theme_font_size_override("font_size", 20)
+	if UITheme.font_title:
+		_lbl_vs.add_theme_font_override("font", UITheme.font_title)
 	hbox.add_child(_lbl_vs)
 
 	_lbl_opp_col = Label.new()
@@ -106,17 +110,20 @@ func _build_resolution_panel() -> void:
 	_lbl_rerolls = Label.new()
 	_lbl_rerolls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_rerolls.add_theme_font_size_override("font_size", 13)
-	_lbl_rerolls.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	_lbl_rerolls.add_theme_color_override("font_color", UITheme.REROLL_GRAY)
 	_vbox.add_child(_lbl_rerolls)
 
 	_lbl_outcome = Label.new()
 	_lbl_outcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_outcome.add_theme_font_size_override("font_size", 26)
+	if UITheme.font_title:
+		_lbl_outcome.add_theme_font_override("font", UITheme.font_title)
 	_vbox.add_child(_lbl_outcome)
 
 	_btn_continue = Button.new()
 	_btn_continue.text = "Continue"
 	_btn_continue.visible = false
+	ButtonFX.apply(_btn_continue)
 	_vbox.add_child(_btn_continue)
 	_btn_continue.pressed.connect(_on_continue_pressed)
 
@@ -138,12 +145,9 @@ func _build_penalty_panel() -> void:
 	vbox.add_theme_constant_override("separation", 14)
 	_penalty_panel.add_child(vbox)
 
-	_lbl_pen_title = Label.new()
-	_lbl_pen_title.text = "PENALTY TASK"
-	_lbl_pen_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_lbl_pen_title.add_theme_font_size_override("font_size", 26)
-	_lbl_pen_title.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
-	vbox.add_child(_lbl_pen_title)
+	var pen_title_container := UIHelpers.create_title("PENALTY TASK", 26, UITheme.PENALTY_RED)
+	vbox.add_child(pen_title_container)
+	_lbl_pen_title = pen_title_container.get_meta("label")
 
 	_lbl_pen_exercise = Label.new()
 	_lbl_pen_exercise.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -168,26 +172,26 @@ func _build_penalty_panel() -> void:
 	_lbl_pen_media = Label.new()
 	_lbl_pen_media.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_pen_media.add_theme_font_size_override("font_size", 14)
-	_lbl_pen_media.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+	_lbl_pen_media.add_theme_color_override("font_color", UITheme.INFO)
 	_lbl_pen_media.visible = false
 	vbox.add_child(_lbl_pen_media)
 
 	_lbl_pen_timer = Label.new()
 	_lbl_pen_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_pen_timer.add_theme_font_size_override("font_size", 22)
+	if UITheme.font_title:
+		_lbl_pen_timer.add_theme_font_override("font", UITheme.font_title)
 	vbox.add_child(_lbl_pen_timer)
 
 	_btn_pen_done = Button.new()
 	_btn_pen_done.text = "Done"
 	_btn_pen_done.disabled = true
+	ButtonFX.apply(_btn_pen_done)
 	vbox.add_child(_btn_pen_done)
 	_btn_pen_done.pressed.connect(_on_penalty_done_pressed)
 
 
 ## Displays the clash resolution screen with dice results.
-## data keys: player_won, player_roll, player_size, player_total,
-##            opp_roll, opp_size, opp_total, rerolls,
-##            weight, speed, duration, exercise, reps
 func show_clash_result(data: Dictionary) -> void:
 	_player_won = data.get("player_won", false)
 	_phase = _PHASE_RESOLUTION
@@ -210,11 +214,11 @@ func show_clash_result(data: Dictionary) -> void:
 
 	if _player_won:
 		_lbl_outcome.text = "★  YOU WIN!  ★"
-		_lbl_outcome.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3))
+		_lbl_outcome.add_theme_color_override("font_color", UITheme.SUCCESS)
 		_btn_continue.visible = true
 	else:
 		_lbl_outcome.text = "✗  YOU LOSE  ✗"
-		_lbl_outcome.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		_lbl_outcome.add_theme_color_override("font_color", UITheme.ERROR)
 		_btn_continue.visible = false
 		# Prepare penalty data for later.
 		_penalty_timer = data.get("duration", 25.0)
@@ -236,6 +240,16 @@ func show_clash_result(data: Dictionary) -> void:
 	_panel.visible = true
 	_penalty_panel.visible = false
 	visible = true
+
+	# Animate in
+	_overlay.modulate.a = 0.0
+	_panel.modulate.a = 0.0
+	_panel.scale = Vector2(0.9, 0.9)
+	_panel.pivot_offset = _panel.size / 2.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
 func _process(delta: float) -> void:
@@ -260,8 +274,20 @@ func _process(delta: float) -> void:
 
 func _switch_to_penalty() -> void:
 	_phase = _PHASE_PENALTY
-	_panel.visible = false
+
+	# Crossfade panels
 	_penalty_panel.visible = true
+	_penalty_panel.modulate.a = 0.0
+	_penalty_panel.scale = Vector2(0.9, 0.9)
+	_penalty_panel.pivot_offset = _penalty_panel.size / 2.0
+
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_panel, "modulate:a", 0.0, 0.2)
+	tw.tween_property(_penalty_panel, "modulate:a", 1.0, 0.25).set_delay(0.1)
+	tw.tween_property(_penalty_panel, "scale", Vector2.ONE, 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.1)
+	await tw.finished
+
+	_panel.visible = false
 	_penalty_active = true
 
 

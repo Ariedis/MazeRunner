@@ -1,12 +1,5 @@
 extends Control
 
-const AVATAR_COLORS: Array = [
-	Color(0.3, 0.5, 0.9),
-	Color(0.9, 0.3, 0.3),
-	Color(0.3, 0.8, 0.4),
-	Color(0.7, 0.3, 0.9),
-	Color(0.9, 0.6, 0.2),
-]
 const AVATAR_COUNT: int = 5
 
 var _creator: CharacterCreatorLogic
@@ -46,7 +39,7 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.08, 0.12)
+	bg.color = UITheme.BG_DARK
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
@@ -76,11 +69,8 @@ func _build_ui() -> void:
 	margin.add_child(vbox)
 
 	# Title
-	var title := Label.new()
-	title.text = "NEW GAME"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
-	vbox.add_child(title)
+	var title_container := UIHelpers.create_title("NEW GAME", 26)
+	vbox.add_child(title_container)
 
 	vbox.add_child(_hsep())
 
@@ -95,6 +85,7 @@ func _build_ui() -> void:
 		btn.pressed.connect(_on_map_size_selected.bind(i))
 		map_hbox.add_child(btn)
 		_map_size_buttons.append(btn)
+		ButtonFX.apply(btn)
 	vbox.add_child(map_hbox)
 
 	vbox.add_child(_hsep())
@@ -131,6 +122,7 @@ func _build_ui() -> void:
 	var btn_minus := Button.new()
 	btn_minus.text = " - "
 	btn_minus.pressed.connect(_on_size_minus)
+	ButtonFX.apply(btn_minus)
 	_label_size_value = Label.new()
 	_label_size_value.custom_minimum_size = Vector2(28, 0)
 	_label_size_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -138,6 +130,7 @@ func _build_ui() -> void:
 	var btn_plus := Button.new()
 	btn_plus.text = " + "
 	btn_plus.pressed.connect(_on_size_plus)
+	ButtonFX.apply(btn_plus)
 	size_hbox.add_child(btn_minus)
 	size_hbox.add_child(_label_size_value)
 	size_hbox.add_child(btn_plus)
@@ -156,6 +149,7 @@ func _build_ui() -> void:
 	var btn_opp_minus := Button.new()
 	btn_opp_minus.text = " - "
 	btn_opp_minus.pressed.connect(_on_opp_minus)
+	ButtonFX.apply(btn_opp_minus)
 	_label_opponents = Label.new()
 	_label_opponents.custom_minimum_size = Vector2(28, 0)
 	_label_opponents.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -163,6 +157,7 @@ func _build_ui() -> void:
 	var btn_opp_plus := Button.new()
 	btn_opp_plus.text = " + "
 	btn_opp_plus.pressed.connect(_on_opp_plus)
+	ButtonFX.apply(btn_opp_plus)
 	opp_hbox.add_child(btn_opp_minus)
 	opp_hbox.add_child(_label_opponents)
 	opp_hbox.add_child(btn_opp_plus)
@@ -221,7 +216,7 @@ func _build_ui() -> void:
 
 	# Error label
 	_label_error = Label.new()
-	_label_error.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+	_label_error.add_theme_color_override("font_color", UITheme.ERROR)
 	_label_error.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_error.visible = false
 	vbox.add_child(_label_error)
@@ -234,10 +229,12 @@ func _build_ui() -> void:
 	btn_back.text = "Back"
 	btn_back.custom_minimum_size = Vector2(110, 0)
 	btn_back.pressed.connect(SceneManager.go_to_main_menu)
+	ButtonFX.apply(btn_back)
 	_btn_start = Button.new()
 	_btn_start.text = "Start Game"
 	_btn_start.custom_minimum_size = Vector2(130, 0)
 	_btn_start.pressed.connect(_on_start_game)
+	ButtonFX.apply(_btn_start)
 	btn_row.add_child(btn_back)
 	btn_row.add_child(_btn_start)
 	vbox.add_child(btn_row)
@@ -340,9 +337,10 @@ func _refresh_avatar_buttons() -> void:
 
 
 func _apply_avatar_style(btn: Button, avatar_idx: int, selected: bool) -> void:
-	var color: Color = AVATAR_COLORS[avatar_idx]
+	var color: Color = UITheme.AVATAR_COLORS[avatar_idx]
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
+	style.set_corner_radius_all(8)
 	if selected:
 		style.border_width_top = 3
 		style.border_width_bottom = 3
@@ -405,6 +403,8 @@ func _section_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", 16)
+	if UITheme.font_title:
+		lbl.add_theme_font_override("font", UITheme.font_title)
 	return lbl
 
 

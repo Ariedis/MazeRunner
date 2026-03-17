@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+UITheme="*res://scripts/autoloads/UITheme.gd"
 Enums="*res://scripts/autoloads/Enums.gd"
 SignalBus="*res://scripts/autoloads/SignalBus.gd"
 GameState="*res://scripts/autoloads/GameState.gd"

@@ -8,6 +8,7 @@ var _timer_remaining: float = 0.0
 var _active: bool = false
 var _item_type: int = Enums.ItemType.SIZE_INCREASER
 
+var _overlay: ColorRect
 var _panel: Panel
 var _label_title: Label
 var _label_media: Label
@@ -27,30 +28,35 @@ func _ready() -> void:
 	layer = 10
 	visible = false
 
+	_overlay = UIHelpers.create_dim_overlay(0.5)
+	add_child(_overlay)
+
 	_panel = Panel.new()
 	_panel.name = "TaskPanel"
 	_panel.custom_minimum_size = Vector2(600, 400)
-	_panel.anchors_preset = Control.PRESET_CENTER
-	add_child(_panel)
-
-	# Center the panel on screen
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_panel.offset_left = -300
 	_panel.offset_top = -200
 	_panel.offset_right = 300
 	_panel.offset_bottom = 200
+	add_child(_panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_panel.add_child(margin)
 
 	var vbox := VBoxContainer.new()
 	vbox.name = "VBox"
-	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vbox.add_theme_constant_override("separation", 12)
-	_panel.add_child(vbox)
+	margin.add_child(vbox)
 
-	_label_title = Label.new()
-	_label_title.name = "LabelTitle"
-	_label_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label_title.add_theme_font_size_override("font_size", 24)
-	vbox.add_child(_label_title)
+	var title_container := UIHelpers.create_title("", 24)
+	vbox.add_child(title_container)
+	_label_title = title_container.get_meta("label")
 
 	_label_media = Label.new()
 	_label_media.name = "LabelMedia"
@@ -68,13 +74,15 @@ func _ready() -> void:
 	_label_timer.name = "LabelTimer"
 	_label_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_timer.add_theme_font_size_override("font_size", 20)
+	if UITheme.font_title:
+		_label_timer.add_theme_font_override("font", UITheme.font_title)
 	vbox.add_child(_label_timer)
 
 	_label_reward = Label.new()
 	_label_reward.name = "LabelReward"
 	_label_reward.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_reward.add_theme_font_size_override("font_size", 22)
-	_label_reward.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+	_label_reward.add_theme_color_override("font_color", UITheme.GOLD)
 	_label_reward.visible = false
 	vbox.add_child(_label_reward)
 
@@ -82,6 +90,7 @@ func _ready() -> void:
 	_btn_done.name = "BtnDone"
 	_btn_done.text = "Collect"
 	_btn_done.disabled = true
+	ButtonFX.apply(_btn_done)
 	vbox.add_child(_btn_done)
 	_btn_done.pressed.connect(_on_done_pressed)
 
@@ -101,6 +110,16 @@ func show_task(task: TaskData, location_id: int, item_type: int) -> void:
 	_btn_done.disabled = true
 	_active = true
 	visible = true
+
+	# Fade in
+	_overlay.modulate.a = 0.0
+	_panel.modulate.a = 0.0
+	_panel.scale = Vector2(0.9, 0.9)
+	_panel.pivot_offset = _panel.size / 2.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_overlay, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.2)
+	tw.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
 func _process(delta: float) -> void:
