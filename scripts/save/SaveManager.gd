@@ -160,8 +160,8 @@ func capture_game_state(
 
 	# Player
 	data["player"] = {
-		"position": _v2_to_arr(player.global_position),
-		"grid_pos": _v2i_to_arr(renderer.world_to_grid(player.global_position)),
+		"position": _v2_to_arr(player.position),
+		"grid_pos": _v2i_to_arr(renderer.world_to_grid(player.position)),
 		"size": player.stats.size,
 		"energy": player.stats.energy,
 		"has_item": GameState.player.get("has_item", false),
@@ -179,8 +179,8 @@ func capture_game_state(
 		var brain: AIBrain = ai.brain
 		var opp := {
 			"index": i,
-			"position": _v2_to_arr(ai.global_position),
-			"grid_pos": _v2i_to_arr(renderer.world_to_grid(ai.global_position)),
+			"position": _v2_to_arr(ai.position),
+			"grid_pos": _v2i_to_arr(renderer.world_to_grid(ai.position)),
 			"size": ai.stats.size,
 			"energy": ai.stats.energy,
 			"difficulty": ai._difficulty,

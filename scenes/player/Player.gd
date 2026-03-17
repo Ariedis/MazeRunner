@@ -1,6 +1,8 @@
 class_name Player
 extends CharacterBody2D
 
+const Y_SCALE_INV := 1.25
+
 var stats: PlayerStats = PlayerStats.new()
 
 ## True while the player is involved in a clash (immobilized).
@@ -26,6 +28,38 @@ func setup(tile_size: int) -> void:
 	# layer 4 and are not in this mask, so they phase through the player.
 	collision_layer = 2
 	collision_mask = 1
+
+	# Build player visual scaled to tile size: bright gold diamond with dark outline + drop shadow.
+	var r := float(tile_size) * 0.4
+	var diamond_pts := PackedVector2Array([
+		Vector2(0, -r), Vector2(r, 0), Vector2(0, r), Vector2(-r, 0)
+	])
+
+	# Drop shadow (dark ellipse slightly below).
+	var shadow := Polygon2D.new()
+	shadow.name = "Shadow"
+	shadow.polygon = diamond_pts
+	shadow.color = Color(0.0, 0.0, 0.0, 0.3)
+	shadow.position = Vector2(0, r * 0.25)
+	shadow.scale = Vector2(0.9, 0.5)
+	add_child(shadow)
+
+	# Dark outline (slightly larger polygon behind).
+	var outline_r := r + maxf(2.0, r * 0.15)
+	var outline_pts := PackedVector2Array([
+		Vector2(0, -outline_r), Vector2(outline_r, 0), Vector2(0, outline_r), Vector2(-outline_r, 0)
+	])
+	var outline := Polygon2D.new()
+	outline.name = "Outline"
+	outline.polygon = outline_pts
+	outline.color = Color(0.16, 0.1, 0.0)
+	add_child(outline)
+
+	# Main player diamond.
+	$Polygon2D.polygon = diamond_pts
+	$Polygon2D.color = Color(1.0, 0.84, 0.2)
+	# Ensure main polygon draws on top of outline.
+	move_child($Polygon2D, get_child_count() - 1)
 
 	stats.size = GameState.player.get("size", 1)
 	stats.energy = GameState.player.get("energy", 100.0)
@@ -70,7 +104,8 @@ func _physics_process(delta: float) -> void:
 	var moving := input_dir != Vector2.ZERO
 
 	if moving:
-		velocity = input_dir.normalized() * stats.current_speed() * _speed_multiplier
+		var compensated := Vector2(input_dir.x, input_dir.y * Y_SCALE_INV)
+		velocity = compensated.normalized() * stats.current_speed() * _speed_multiplier
 		stats.drain(delta)
 	else:
 		velocity = Vector2.ZERO
@@ -80,5 +115,5 @@ func _physics_process(delta: float) -> void:
 
 	GameState.player["energy"] = stats.energy
 	GameState.player["size"] = stats.size
-	GameState.player["position"] = global_position
+	GameState.player["position"] = position
 	SignalBus.player_energy_changed.emit(stats.energy)

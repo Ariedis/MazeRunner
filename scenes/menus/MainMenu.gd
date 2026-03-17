@@ -48,16 +48,20 @@ func _ready() -> void:
 
 
 func _start_title_color_cycle() -> void:
-	var colors := [
+	var colors: Array[Color] = [
 		UITheme.ACCENT,
 		Color(0.6, 0.4, 1.0),
 		UITheme.GOLD,
 		Color(0.3, 0.8, 1.0),
 		UITheme.ACCENT,
 	]
+	# Set the initial color so the first tween has a valid start value.
+	_title_label.add_theme_color_override("font_color", colors[0])
 	var tw := create_tween().set_loops()
-	for c in colors:
-		tw.tween_property(_title_label, "theme_override_colors/font_color", c, 2.0)
+	tw.tween_property(_title_label, "theme_override_colors/font_color", colors[1], 2.0)
+	tw.tween_property(_title_label, "theme_override_colors/font_color", colors[2], 2.0)
+	tw.tween_property(_title_label, "theme_override_colors/font_color", colors[3], 2.0)
+	tw.tween_property(_title_label, "theme_override_colors/font_color", colors[4], 2.0)
 
 
 func _on_new_game() -> void:

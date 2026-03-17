@@ -1,5 +1,8 @@
 extends Node2D
 
+const Y_SCALE := 0.8
+const Y_SCALE_INV := 1.25
+
 var _maze_data: MazeData
 var _renderer: MazeRenderer
 var _player: Player
@@ -23,6 +26,7 @@ var _pending_ai_clashes: Array = []  # AI-AI clashes deferred while player clash
 var _hud: GameHUD
 var _pause_menu: PauseMenu
 var _save_slot_panel: SaveSlotPanel
+var _game_world: Node2D
 
 # --- Feature managers (null when feature is disabled) ---
 var _powerup_manager: PowerupManager = null
@@ -38,16 +42,23 @@ func _ready() -> void:
 	var gen = MazeGenerator.new()
 	_maze_data = gen.generate(map_size, seed_val)
 
+	# Create scaled game world container for oblique/fake-isometric view.
+	_game_world = Node2D.new()
+	_game_world.name = "GameWorld"
+	_game_world.scale = Vector2(1.0, Y_SCALE)
+	add_child(_game_world)
+
 	var size_data = Enums.MAP_SIZE_DATA[map_size]
 	_renderer = MazeRenderer.new()
 	_renderer.name = "MazeRenderer"
-	add_child(_renderer)
+	_game_world.add_child(_renderer)
 	_renderer.render(_maze_data, size_data["cell_px"])
 
 	var player_scene: PackedScene = load("res://scenes/player/Player.tscn")
 	_player = player_scene.instantiate()
 	_player.name = "Player"
-	add_child(_player)
+	_player.z_index = 5
+	_game_world.add_child(_player)
 
 	_tile_size = size_data["cell_px"] / 2
 	var tile_size: int = _tile_size
@@ -57,11 +68,13 @@ func _ready() -> void:
 	_fog = FogOfWar.new()
 	_fog_renderer = FogRenderer.new()
 	_fog_renderer.name = "FogRenderer"
+	_fog_renderer.z_index = 10
 	_fog_renderer.initialize(_maze_data.width, _maze_data.height, tile_size)
 
 	# Set up task system
 	var task_loader := TaskLoader.new()
-	var tasks := task_loader.load_all_tasks()
+	var task_category: String = GameState.config.get("task_category", "")
+	var tasks := task_loader.load_all_tasks(task_category)
 	var loc_rng := RandomNumberGenerator.new()
 	loc_rng.seed = _maze_data.seed_val + 1
 
@@ -78,7 +91,8 @@ func _ready() -> void:
 	for i in min(num_opponents, _maze_data.ai_spawns.size()):
 		var ai := AIOpponent.new()
 		ai.name = "AIOpponent_%d" % i
-		add_child(ai)
+		ai.z_index = 5
+		_game_world.add_child(ai)
 		ai.position = _renderer.get_world_position(_maze_data.ai_spawns[i])
 		var diff: int = ai_difficulties[i] if i < ai_difficulties.size() else Enums.Difficulty.EASY
 		ai.setup(tile_size, diff, i, _maze_data, _location_manager, _renderer)
@@ -90,7 +104,8 @@ func _ready() -> void:
 	if GameState.config.get("enable_hazards", false):
 		_hazard_manager = HazardManager.new()
 		_hazard_manager.name = "HazardManager"
-		add_child(_hazard_manager)
+		_hazard_manager.z_index = 3
+		_game_world.add_child(_hazard_manager)
 		_hazard_manager.setup(_maze_data, tile_size, _renderer)
 		# Hard AI knows all dead-end trap positions up front.
 		var trap_positions := _hazard_manager.get_active_dead_end_trap_positions()
@@ -103,7 +118,8 @@ func _ready() -> void:
 	if GameState.config.get("enable_powerups", false):
 		_powerup_manager = PowerupManager.new()
 		_powerup_manager.name = "PowerupManager"
-		add_child(_powerup_manager)
+		_powerup_manager.z_index = 3
+		_game_world.add_child(_powerup_manager)
 		_powerup_manager.setup(_maze_data, tile_size, _renderer)
 		var powerup_positions := _powerup_manager.get_all_positions()
 		for ai in _ai_opponents:
@@ -114,11 +130,20 @@ func _ready() -> void:
 	if GameState.config.get("enable_traps", false):
 		_trap_manager = TrapManager.new()
 		_trap_manager.name = "TrapManager"
-		add_child(_trap_manager)
+		_trap_manager.z_index = 3
+		_game_world.add_child(_trap_manager)
 		var map_size_val: int = GameState.config.get("map_size", Enums.MapSize.SMALL)
 		_trap_manager.setup(map_size_val, tile_size, _renderer)
 
-	add_child(_fog_renderer)
+	_game_world.add_child(_fog_renderer)
+
+	# Reveal fog around player spawn immediately so the player is visible from frame 1.
+	var spawn_cell := _renderer.world_to_grid(_player.position)
+	var initial_revealed := _fog.reveal(spawn_cell, _maze_data.width, _maze_data.height)
+	if initial_revealed.size() > 0:
+		_fog_renderer.reveal_cells(initial_revealed)
+		GameState.player["explored_cells"] = _fog.get_explored_array()
+	_last_grid_cell = spawn_cell
 
 	# Task overlay (CanvasLayer — renders above everything)
 	_task_overlay = TaskOverlay.new()
@@ -199,7 +224,7 @@ func _process(_delta: float) -> void:
 	_check_clashes()
 	_check_ai_grid_cells()
 
-	var cell := _renderer.world_to_grid(_player.global_position)
+	var cell := _renderer.world_to_grid(_player.position)
 	if cell == _last_grid_cell:
 		return
 	_last_grid_cell = cell
@@ -255,7 +280,8 @@ func _toggle_pause() -> void:
 func _spawn_location_markers(tile_size: int) -> void:
 	var layer := Node2D.new()
 	layer.name = "LocationLayer"
-	add_child(layer)
+	layer.z_index = 4
+	_game_world.add_child(layer)
 	for loc in _location_manager.locations:
 		var marker := _make_marker(tile_size)
 		marker.position = _renderer.get_world_position(loc.grid_pos)
@@ -280,7 +306,8 @@ func _make_marker(tile_size: int) -> Node2D:
 func _spawn_exit_marker(tile_size: int) -> void:
 	var layer := Node2D.new()
 	layer.name = "ExitLayer"
-	add_child(layer)
+	layer.z_index = 4
+	_game_world.add_child(layer)
 
 	var marker := Node2D.new()
 	var poly := Polygon2D.new()
@@ -306,7 +333,7 @@ func _check_ai_grid_cells() -> void:
 		var ai: AIOpponent = _ai_opponents[i]
 		if ai._match_over:
 			continue
-		var ai_cell := _renderer.world_to_grid(ai.global_position)
+		var ai_cell := _renderer.world_to_grid(ai.position)
 		if ai_cell == _ai_last_grid_cells[i]:
 			continue
 		_ai_last_grid_cells[i] = ai_cell
@@ -386,7 +413,7 @@ func _check_player_hazard(cell: Vector2i) -> void:
 		var partner := _hazard_manager.get_teleporter_partner(cell)
 		if partner != Vector2i(-1, -1):
 			_hazard_manager.start_teleporter_cooldown(cell)
-			_player.global_position = _renderer.get_world_position(partner)
+			_player.position = _renderer.get_world_position(partner)
 			_last_grid_cell = partner
 
 
@@ -406,14 +433,14 @@ func _check_ai_hazard(ai: AIOpponent, cell: Vector2i) -> void:
 		var partner := _hazard_manager.get_teleporter_partner(cell)
 		if partner != Vector2i(-1, -1):
 			_hazard_manager.start_teleporter_cooldown(cell)
-			ai.global_position = _renderer.get_world_position(partner)
+			ai.position = _renderer.get_world_position(partner)
 			var ai_idx := _ai_opponents.find(ai)
 			if ai_idx >= 0:
 				_ai_last_grid_cells[ai_idx] = partner
 
 
 func _try_place_trap() -> void:
-	var cell := _renderer.world_to_grid(_player.global_position)
+	var cell := _renderer.world_to_grid(_player.position)
 	if _trap_manager.is_valid_placement(cell, _maze_data):
 		_trap_manager.place_trap(cell)
 		_hud.show_trap_count(_trap_manager.get_player_supply())
@@ -543,7 +570,7 @@ func _apply_save_data(data: Dictionary) -> void:
 	# Restore player position
 	var player_data: Dictionary = data.get("player", {})
 	if player_data.has("position"):
-		_player.global_position = SaveManager.arr_to_v2(player_data["position"])
+		_player.position = SaveManager.arr_to_v2(player_data["position"])
 	_player.stats.size = player_data.get("size", 1)
 	_player.stats.energy = player_data.get("energy", 100.0)
 	_player._clash_cooldown = player_data.get("clash_cooldown", 0.0)
@@ -589,7 +616,7 @@ func _apply_save_data(data: Dictionary) -> void:
 		var ai: AIOpponent = _ai_opponents[i]
 
 		if opp_data.has("position"):
-			ai.global_position = SaveManager.arr_to_v2(opp_data["position"])
+			ai.position = SaveManager.arr_to_v2(opp_data["position"])
 		ai.stats.size = opp_data.get("size", 1)
 		ai.stats.energy = opp_data.get("energy", 100.0)
 		ai._clash_cooldown = opp_data.get("clash_cooldown", 0.0)
@@ -672,7 +699,7 @@ func _check_clashes() -> void:
 				continue
 			if ai_b._clash_cooldown > 0.0 or ai_b.brain.is_in_penalty():
 				continue
-			if ai_a.global_position.distance_to(ai_b.global_position) <= clash_dist:
+			if ai_a.position.distance_to(ai_b.position) <= clash_dist:
 				ai_a.resolve_ai_ai_clash(ai_b)
 
 	# Player vs AI opponents.
@@ -681,7 +708,7 @@ func _check_clashes() -> void:
 			var opp: AIOpponent = ai
 			if opp._clash_cooldown > 0.0 or opp.brain.is_in_penalty():
 				continue
-			if _player.global_position.distance_to(opp.global_position) <= clash_dist:
+			if _player.position.distance_to(opp.position) <= clash_dist:
 				_on_player_clash_triggered(opp)
 				break
 
@@ -694,7 +721,7 @@ func _check_clashes() -> void:
 			var ai_b: AIOpponent = _ai_opponents[j]
 			if ai_b._clash_cooldown > 0.0 or ai_b.brain.is_in_penalty():
 				continue
-			if ai_a.global_position.distance_to(ai_b.global_position) <= clash_dist:
+			if ai_a.position.distance_to(ai_b.position) <= clash_dist:
 				if _clash_active:
 					_pending_ai_clashes.append([ai_a, ai_b])
 				else:
@@ -725,13 +752,14 @@ func _on_player_clash_triggered(opp: AIOpponent) -> void:
 	var total_cooldown := Enums.CLASH_COOLDOWN_SECONDS + penalty_duration
 	_player._clash_cooldown = total_cooldown
 	opp._clash_cooldown = total_cooldown
-	var sep_dir := (_player.global_position - opp.global_position).normalized()
+	var sep_dir := (_player.position - opp.position).normalized()
 	if sep_dir == Vector2.ZERO:
 		sep_dir = Vector2.RIGHT
-	_player.global_position += sep_dir * float(_tile_size) * 0.6
-	opp.global_position -= sep_dir * float(_tile_size) * 0.6
+	_player.position += sep_dir * float(_tile_size) * 0.6
+	opp.position -= sep_dir * float(_tile_size) * 0.6
 
-	var task := ClashTaskLoader.load_active_task()
+	var clash_category: String = GameState.config.get("task_category", "")
+	var task := ClashTaskLoader.load_active_task(clash_category)
 
 	_clash_overlay.show_clash_result({
 		"player_won": player_won,

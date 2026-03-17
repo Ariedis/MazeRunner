@@ -3,6 +3,8 @@ extends CharacterBody2D
 
 signal reached_exit_with_item()
 
+const Y_SCALE_INV := 1.25
+
 var stats: PlayerStats
 var brain: AIBrain
 
@@ -97,7 +99,7 @@ func setup(tile_size: int, difficulty: int, ai_idx: int, maze_data: MazeData,
 
 	# position must already be set by the caller before setup() is invoked,
 	# so world_to_grid gives the correct spawn grid cell.
-	var spawn_grid := renderer.world_to_grid(global_position)
+	var spawn_grid := renderer.world_to_grid(position)
 	brain.explored[spawn_grid] = true
 
 	SignalBus.match_ended.connect(_on_match_ended)
@@ -137,7 +139,7 @@ func _physics_process(delta: float) -> void:
 	# PENALTY: stand still, no energy regen, wait for timer.
 	if brain.is_in_penalty():
 		velocity = Vector2.ZERO
-		brain.tick(delta, _renderer.world_to_grid(global_position), _maze_data, stats.energy)
+		brain.tick(delta, _renderer.world_to_grid(position), _maze_data, stats.energy)
 		move_and_slide()
 		return
 
@@ -145,8 +147,8 @@ func _physics_process(delta: float) -> void:
 	var next_step := brain.get_next_step()
 	if next_step != Vector2i(-1, -1):
 		var target_world := _renderer.get_world_position(next_step)
-		if (target_world - global_position).length() < float(_tile_size) * 0.25:
-			global_position = target_world
+		if (target_world - position).length() < float(_tile_size) * 0.25:
+			position = target_world
 			var won := brain.on_step_reached(next_step, _maze_data)
 			if won:
 				_match_over = true
@@ -156,7 +158,7 @@ func _physics_process(delta: float) -> void:
 			_handle_location_arrival(next_step)
 
 	# Tick brain: state transitions and path planning.
-	brain.tick(delta, _renderer.world_to_grid(global_position), _maze_data, stats.energy)
+	brain.tick(delta, _renderer.world_to_grid(position), _maze_data, stats.energy)
 
 	# Update visual color based on current brain state.
 	_update_visual()
@@ -186,9 +188,10 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var target := _renderer.get_world_position(next_step)
-	var dir := target - global_position
+	var dir := target - position
+	var compensated := Vector2(dir.x, dir.y * Y_SCALE_INV)
 	var speed_mult: float = Enums.AI_SPEED_MULTIPLIER.get(_difficulty, 1.0)
-	velocity = dir.normalized() * stats.current_speed() * speed_mult * _speed_multiplier
+	velocity = compensated.normalized() * stats.current_speed() * speed_mult * _speed_multiplier
 	stats.drain(delta)
 	move_and_slide()
 
@@ -210,11 +213,11 @@ func resolve_ai_ai_clash(other: AIOpponent) -> void:
 	other._clash_cooldown = total_cooldown
 
 	# Push apart to separate them.
-	var sep_dir := (global_position - other.global_position).normalized()
+	var sep_dir := (position - other.position).normalized()
 	if sep_dir == Vector2.ZERO:
 		sep_dir = Vector2.RIGHT
-	global_position += sep_dir * float(_tile_size) * 0.6
-	other.global_position -= sep_dir * float(_tile_size) * 0.6
+	position += sep_dir * float(_tile_size) * 0.6
+	other.position -= sep_dir * float(_tile_size) * 0.6
 
 
 func _update_visual() -> void:
@@ -262,7 +265,7 @@ func _handle_location_arrival(grid_pos: Vector2i) -> void:
 
 
 func _complete_task() -> void:
-	var grid_cell := _renderer.world_to_grid(global_position)
+	var grid_cell := _renderer.world_to_grid(position)
 	var loc := _location_manager.get_location_at(grid_cell)
 	if loc != null and not loc.completed:
 		_location_manager.complete_location(loc.id, "ai_%d" % _ai_index)

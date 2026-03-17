@@ -5,3 +5,4 @@ var title: String = ""
 var description: String = ""
 var media_path: String = ""
 var duration_seconds: float = 30.0
+var category: String = ""

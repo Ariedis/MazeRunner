@@ -67,16 +67,29 @@ func load_user_tasks() -> Array[TaskData]:
 		task.description = str(entry.get("description", ""))
 		task.duration_seconds = float(entry.get("duration_seconds", 30.0))
 		task.media_path = str(entry.get("media_path", ""))
+		task.category = str(entry.get("category", ""))
 		if task.title != "" and task.duration_seconds > 0.0:
 			tasks.append(task)
 
 	return tasks
 
 
-func load_all_tasks() -> Array[TaskData]:
+## Load all tasks, optionally filtered by category.
+## If category is empty, returns all tasks.
+func load_all_tasks(category: String = "") -> Array[TaskData]:
 	var result: Array[TaskData] = load_default_tasks()
 	result.append_array(load_user_tasks())
-	return result
+	if category == "":
+		return result
+	# Filter: include tasks that match the category, or have no category (defaults)
+	var filtered: Array[TaskData] = []
+	for task in result:
+		if task.category == category or task.category == "":
+			filtered.append(task)
+	# If filtering leaves no category-specific tasks, return all
+	if filtered.is_empty():
+		return result
+	return filtered
 
 
 func _parse_task_json(json_text: String) -> TaskData:
@@ -94,4 +107,5 @@ func _parse_task_json(json_text: String) -> TaskData:
 	task.description = str(data["description"])
 	task.duration_seconds = float(data["duration_seconds"])
 	task.media_path = str(data.get("media_path", ""))
+	task.category = str(data.get("category", ""))
 	return task

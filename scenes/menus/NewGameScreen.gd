@@ -14,6 +14,7 @@ var _enable_powerups: bool = false
 var _enable_traps: bool = false
 var _enable_leaderboard: bool = false
 var _enable_hazards: bool = false
+var _selected_category: String = ""
 
 var _map_size_buttons: Array = []
 var _avatar_buttons: Array = []
@@ -23,8 +24,10 @@ var _label_opponents: Label
 var _difficulty_container: VBoxContainer
 var _difficulty_dropdowns: Array = []
 var _item_option: OptionButton
+var _category_option: OptionButton
 var _label_error: Label
 var _btn_start: Button
+var _file_dialog: FileDialog
 
 
 func _ready() -> void:
@@ -214,6 +217,30 @@ func _build_ui() -> void:
 
 	vbox.add_child(_hsep())
 
+	# Task Category
+	vbox.add_child(_section_label("Task Category:"))
+	var cat_row := HBoxContainer.new()
+	cat_row.add_theme_constant_override("separation", 10)
+	_category_option = OptionButton.new()
+	_category_option.custom_minimum_size = Vector2(220, 0)
+	_category_option.item_selected.connect(_on_category_selected)
+	cat_row.add_child(_category_option)
+	vbox.add_child(cat_row)
+	_refresh_categories()
+
+	# Content Pack loader
+	var pack_row := HBoxContainer.new()
+	pack_row.add_theme_constant_override("separation", 10)
+	var btn_load_pack := Button.new()
+	btn_load_pack.text = "Load Content Pack..."
+	btn_load_pack.custom_minimum_size = Vector2(180, 0)
+	btn_load_pack.pressed.connect(_on_load_content_pack)
+	ButtonFX.apply(btn_load_pack)
+	pack_row.add_child(btn_load_pack)
+	vbox.add_child(pack_row)
+
+	vbox.add_child(_hsep())
+
 	# Error label
 	_label_error = Label.new()
 	_label_error.add_theme_color_override("font_color", UITheme.ERROR)
@@ -302,6 +329,7 @@ func _on_start_game() -> void:
 		"enable_traps": _enable_traps,
 		"enable_leaderboard": _enable_leaderboard,
 		"enable_hazards": _enable_hazards,
+		"task_category": _selected_category,
 	}
 	if not NewGameConfig.validate(config):
 		_label_error.text = "Please select an item before starting."
@@ -321,6 +349,86 @@ func _get_current_difficulties() -> Array:
 		var opt: OptionButton = dropdown
 		diffs.append(opt.selected)
 	return diffs
+
+
+func _on_category_selected(idx: int) -> void:
+	if idx == 0:
+		_selected_category = ""
+	else:
+		_selected_category = _category_option.get_item_metadata(idx)
+
+
+func _on_load_content_pack() -> void:
+	_file_dialog = FileDialog.new()
+	_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	_file_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	_file_dialog.filters = PackedStringArray(["*.json ; JSON Files"])
+	_file_dialog.title = "Select Content Pack JSON"
+	_file_dialog.size = Vector2i(700, 500)
+	_file_dialog.file_selected.connect(_on_content_pack_file_selected)
+	add_child(_file_dialog)
+	_file_dialog.popup_centered()
+
+
+func _on_content_pack_file_selected(path: String) -> void:
+	if _file_dialog != null:
+		_file_dialog.queue_free()
+		_file_dialog = null
+
+	var result := ContentPackLoader.load_pack(path)
+	if not result.success:
+		_label_error.text = "Pack error: %s" % result.error
+		_label_error.visible = true
+		return
+
+	# Show success summary
+	var parts: Array = []
+	if result.tasks_added > 0:
+		parts.append("%d tasks" % result.tasks_added)
+	if result.penalties_added > 0:
+		parts.append("%d penalties" % result.penalties_added)
+	if result.items_added > 0:
+		parts.append("%d items" % result.items_added)
+	if result.categories_added > 0:
+		parts.append("%d categories" % result.categories_added)
+
+	if parts.is_empty():
+		_label_error.text = "No content loaded from pack."
+		_label_error.add_theme_color_override("font_color", UITheme.ERROR)
+	else:
+		_label_error.text = "Loaded: %s" % ", ".join(parts)
+		_label_error.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+	_label_error.visible = true
+
+	# Refresh items and categories
+	_item_registry = ItemRegistry.new()
+	_refresh_item_dropdown()
+	_refresh_categories()
+
+
+func _refresh_item_dropdown() -> void:
+	_item_option.clear()
+	_item_option.add_item("-- Select Item --")
+	for item in _item_registry.get_all():
+		_item_option.add_item(item.name)
+	_item_option.selected = 0
+	_selected_item_id = ""
+
+
+func _refresh_categories() -> void:
+	_category_option.clear()
+	_category_option.add_item("All (No Filter)")
+	_category_option.set_item_metadata(0, "")
+
+	var mgr := CustomContentManager.new()
+	var cat_ids := mgr.get_all_category_ids()
+	for cat_id in cat_ids:
+		var cat_name := mgr.get_category_name(cat_id)
+		_category_option.add_item(cat_name)
+		_category_option.set_item_metadata(_category_option.item_count - 1, cat_id)
+
+	_category_option.selected = 0
+	_selected_category = ""
 
 
 # --- Refresh Helpers ---

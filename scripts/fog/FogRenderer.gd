@@ -1,11 +1,13 @@
 class_name FogRenderer
-extends Node
+extends Node2D
 
-var _fog_map: TileMap
-var _source_id: int
+const WALL_SIDE_RATIO := 0.35
+const FOG_COLOR := Color(0.08, 0.14, 0.04)
+
 var _tile_size: int
 var _map_width: int
 var _map_height: int
+var _revealed: Array = []  # 2D array of bools: _revealed[row][col]
 
 
 func initialize(maze_width: int, maze_height: int, tile_size: int) -> void:
@@ -13,34 +15,19 @@ func initialize(maze_width: int, maze_height: int, tile_size: int) -> void:
 	_map_width = 2 * maze_width + 1
 	_map_height = 2 * maze_height + 1
 
-	_fog_map = TileMap.new()
-	_fog_map.name = "FogTileMap"
-
-	var ts := TileSet.new()
-	ts.tile_size = Vector2i(tile_size, tile_size)
-
-	var img := Image.create(tile_size, tile_size, false, Image.FORMAT_RGB8)
-	img.fill(Color(0.0, 0.0, 0.0))
-	var tex := ImageTexture.create_from_image(img)
-	var source := TileSetAtlasSource.new()
-	source.texture = tex
-	source.texture_region_size = Vector2i(tile_size, tile_size)
-	source.create_tile(Vector2i(0, 0))
-
-	_source_id = ts.add_source(source)
-	_fog_map.tile_set = ts
-
-	for tr in _map_height:
-		for tc in _map_width:
-			_fog_map.set_cell(0, Vector2i(tc, tr), _source_id, Vector2i(0, 0))
-
-	add_child(_fog_map)
+	# Initialize revealed grid (all false = all fogged).
+	_revealed.resize(_map_height)
+	for row in _map_height:
+		var row_arr: Array = []
+		row_arr.resize(_map_width)
+		row_arr.fill(false)
+		_revealed[row] = row_arr
 
 
-func reveal_cells(cells: Array[Vector2i]) -> void:
+func reveal_cells(cells) -> void:
 	for maze_cell in cells:
-		var cx := 2 * maze_cell.x + 1
-		var cy := 2 * maze_cell.y + 1
+		var cx: int = 2 * maze_cell.x + 1
+		var cy: int = 2 * maze_cell.y + 1
 		for dy in range(-1, 2):
 			for dx in range(-1, 2):
 				var tx := cx + dx
@@ -49,4 +36,17 @@ func reveal_cells(cells: Array[Vector2i]) -> void:
 					continue
 				if ty < 0 or ty >= _map_height:
 					continue
-				_fog_map.erase_cell(0, Vector2i(tx, ty))
+				_revealed[ty][tx] = true
+	queue_redraw()
+
+
+func _draw() -> void:
+	var ts := float(_tile_size)
+	var side_ext := ts * WALL_SIDE_RATIO
+	for row in _map_height:
+		for col in _map_width:
+			if not _revealed[row][col]:
+				draw_rect(
+					Rect2(col * ts, row * ts, ts, ts + side_ext),
+					FOG_COLOR
+				)

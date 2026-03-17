@@ -24,7 +24,8 @@
       "Bash(powershell.exe -ExecutionPolicy Bypass -Command \"whoami; [System.Security.Principal.WindowsIdentity]::GetCurrent\\(\\).Name\" 2>&1)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cd:*)"
     ]
   }
 }

@@ -5,6 +5,7 @@ const CUSTOM_DIR: String = "user://custom/"
 const TASKS_PATH: String = "user://custom/tasks.json"
 const ITEMS_PATH: String = "user://custom/items.json"
 const PENALTIES_PATH: String = "user://custom/penalties.json"
+const CATEGORIES_PATH: String = "user://custom/categories.json"
 const MEDIA_DIR: String = "user://custom/media/"
 const ICONS_DIR: String = "user://custom/icons/"
 
@@ -35,7 +36,7 @@ func get_custom_tasks() -> Array:
 
 
 ## Add a custom task. Returns "" on success, or an error message string.
-func add_custom_task(title: String, description: String, duration: float, media_path: String = "") -> String:
+func add_custom_task(title: String, description: String, duration: float, media_path: String = "", category: String = "") -> String:
 	var err := validate_task(title, description, duration, media_path)
 	if err != "":
 		return err
@@ -48,6 +49,7 @@ func add_custom_task(title: String, description: String, duration: float, media_
 		"description": description,
 		"duration_seconds": duration,
 		"media_path": media_path,
+		"category": category,
 	}
 	tasks.append(entry)
 	_save_json_array(TASKS_PATH, "tasks", tasks)
@@ -55,7 +57,7 @@ func add_custom_task(title: String, description: String, duration: float, media_
 
 
 ## Update an existing custom task by id. Returns "" on success, or error message.
-func update_custom_task(id: String, title: String, description: String, duration: float, media_path: String = "") -> String:
+func update_custom_task(id: String, title: String, description: String, duration: float, media_path: String = "", category: String = "") -> String:
 	var err := validate_task(title, description, duration, media_path)
 	if err != "":
 		return err
@@ -67,6 +69,7 @@ func update_custom_task(id: String, title: String, description: String, duration
 			tasks[i]["description"] = description
 			tasks[i]["duration_seconds"] = duration
 			tasks[i]["media_path"] = media_path
+			tasks[i]["category"] = category
 			_save_json_array(TASKS_PATH, "tasks", tasks)
 			return ""
 	return "Task not found"
@@ -223,7 +226,7 @@ func get_custom_penalties() -> Array:
 
 
 ## Add a custom penalty. Returns "" on success, or error message.
-func add_custom_penalty(exercise: String, reps: int, media_path: String = "") -> String:
+func add_custom_penalty(exercise: String, reps: int, media_path: String = "", category: String = "") -> String:
 	var err := validate_penalty(exercise, reps, media_path)
 	if err != "":
 		return err
@@ -235,6 +238,7 @@ func add_custom_penalty(exercise: String, reps: int, media_path: String = "") ->
 		"exercise": exercise,
 		"reps": reps,
 		"media_path": media_path,
+		"category": category,
 	}
 	penalties.append(entry)
 	_save_json_array(PENALTIES_PATH, "penalties", penalties)
@@ -242,7 +246,7 @@ func add_custom_penalty(exercise: String, reps: int, media_path: String = "") ->
 
 
 ## Update an existing custom penalty by id.
-func update_custom_penalty(id: String, exercise: String, reps: int, media_path: String = "") -> String:
+func update_custom_penalty(id: String, exercise: String, reps: int, media_path: String = "", category: String = "") -> String:
 	var err := validate_penalty(exercise, reps, media_path)
 	if err != "":
 		return err
@@ -253,6 +257,7 @@ func update_custom_penalty(id: String, exercise: String, reps: int, media_path: 
 			penalties[i]["exercise"] = exercise
 			penalties[i]["reps"] = reps
 			penalties[i]["media_path"] = media_path
+			penalties[i]["category"] = category
 			_save_json_array(PENALTIES_PATH, "penalties", penalties)
 			return ""
 	return "Penalty not found"
@@ -284,6 +289,77 @@ func validate_penalty(exercise: String, reps: int, media_path: String = "") -> S
 		if ext not in VALID_MEDIA_EXTENSIONS:
 			return "Media must be gif, mp4, or webm"
 	return ""
+
+
+# ========================
+# CATEGORIES
+# ========================
+
+## Returns all custom categories as an Array of Dictionaries.
+func get_categories() -> Array:
+	return _load_json_array(CATEGORIES_PATH, "categories")
+
+
+## Returns all unique category IDs found across tasks and penalties,
+## merged with explicitly defined categories.
+func get_all_category_ids() -> Array:
+	var ids: Array = []
+	var cats := get_categories()
+	for cat in cats:
+		var cat_id: String = cat.get("id", "")
+		if cat_id != "" and cat_id not in ids:
+			ids.append(cat_id)
+	# Also scan tasks and penalties for categories not in the manifest
+	for task in get_custom_tasks():
+		var cat: String = task.get("category", "")
+		if cat != "" and cat not in ids:
+			ids.append(cat)
+	for penalty in get_custom_penalties():
+		var cat: String = penalty.get("category", "")
+		if cat != "" and cat not in ids:
+			ids.append(cat)
+	return ids
+
+
+## Returns the display name for a category id. Falls back to the id itself.
+func get_category_name(cat_id: String) -> String:
+	var cats := get_categories()
+	for cat in cats:
+		if cat.get("id", "") == cat_id:
+			return str(cat.get("name", cat_id))
+	return cat_id
+
+
+## Add a category. Returns "" on success, or error message.
+func add_category(cat_id: String, cat_name: String) -> String:
+	if cat_id.strip_edges().is_empty():
+		return "Category ID is required"
+	if cat_name.strip_edges().is_empty():
+		return "Category name is required"
+	if cat_id.length() > MAX_TITLE_LENGTH:
+		return "Category ID too long"
+	if cat_name.length() > MAX_TITLE_LENGTH:
+		return "Category name too long"
+
+	var cats := get_categories()
+	# Check for duplicate id
+	for cat in cats:
+		if cat.get("id", "") == cat_id:
+			return ""  # Already exists, silently succeed
+	cats.append({"id": cat_id, "name": cat_name})
+	_save_json_array(CATEGORIES_PATH, "categories", cats)
+	return ""
+
+
+## Remove a category by id.
+func remove_category(cat_id: String) -> bool:
+	var cats := get_categories()
+	for i in cats.size():
+		if cats[i].get("id", "") == cat_id:
+			cats.remove_at(i)
+			_save_json_array(CATEGORIES_PATH, "categories", cats)
+			return true
+	return false
 
 
 # ========================

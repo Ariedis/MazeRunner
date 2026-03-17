@@ -17,6 +17,7 @@ var config: Dictionary = {
 	"seed": 0,
 	"item_id": "",
 	"avatar_id": 0,
+	"task_category": "",
 }
 
 var player: Dictionary = {
