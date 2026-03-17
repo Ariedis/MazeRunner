@@ -13,12 +13,13 @@ var _win_condition: WinConditionManager
 var _results_screen: ResultsScreen
 var _start_time_msec: int = 0
 var _match_over: bool = false
-var _label_rejection: Label
 var _ai_opponents: Array = []
 var _tile_size: int = 0
 var _clash_overlay: ClashOverlay
 var _clash_active: bool = false
 var _clash_rng: RandomNumberGenerator
+var _hud: GameHUD
+var _pause_menu: PauseMenu
 
 
 func _ready() -> void:
@@ -70,7 +71,6 @@ func _ready() -> void:
 		var ai := AIOpponent.new()
 		ai.name = "AIOpponent_%d" % i
 		add_child(ai)
-		# Position must be set BEFORE setup() so the brain records the correct spawn cell.
 		ai.position = _renderer.get_world_position(_maze_data.ai_spawns[i])
 		var diff: int = ai_difficulties[i] if i < ai_difficulties.size() else Enums.Difficulty.EASY
 		ai.setup(tile_size, diff, i, _maze_data, _location_manager, _renderer)
@@ -111,22 +111,22 @@ func _ready() -> void:
 	cam.enabled = true
 	_player.add_child(cam)
 
-	$UI/LabelSeed.text = "Seed: %d" % _maze_data.seed_val
-	$UI/LabelSize.text = "Size: %s" % ["SMALL", "MEDIUM", "LARGE"][map_size]
-	$UI/LabelEnergy.text = "Energy: 100%%"
-	$UI/BtnMainMenu.pressed.connect(SceneManager.go_to_main_menu)
+	# HUD (CanvasLayer z=5)
+	_hud = GameHUD.new()
+	_hud.name = "GameHUD"
+	add_child(_hud)
+	_hud.setup(GameState.player.get("avatar_id", 0))
+	_hud.update_size(GameState.player.get("size", 1))
+	_hud.update_energy(GameState.player.get("energy", 100.0))
+	_hud.update_speed(true)
 
-	# Rejection message label (created in code — not in scene)
-	_label_rejection = Label.new()
-	_label_rejection.name = "LabelRejection"
-	_label_rejection.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label_rejection.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
-	_label_rejection.add_theme_font_size_override("font_size", 20)
-	_label_rejection.visible = false
-	$UI.add_child(_label_rejection)
-	_label_rejection.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_label_rejection.offset_top = 60
-	_label_rejection.offset_bottom = 100
+	# Pause menu (CanvasLayer z=10)
+	_pause_menu = PauseMenu.new()
+	_pause_menu.name = "PauseMenu"
+	add_child(_pause_menu)
+	_pause_menu.resume_requested.connect(_on_pause_resume)
+	_pause_menu.save_requested.connect(_on_pause_save)
+	_pause_menu.quit_to_menu_requested.connect(SceneManager.go_to_main_menu)
 
 	SignalBus.player_energy_changed.connect(_on_player_energy_changed)
 	SignalBus.player_item_collected.connect(_on_player_item_collected)
@@ -162,6 +162,25 @@ func _process(_delta: float) -> void:
 		var loc := _location_manager.get_location_at(cell)
 		GameState.match_state["is_paused"] = true
 		_task_overlay.show_task(loc.task, loc.id, loc.item_type)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and not _match_over:
+		# Do not open pause menu while task overlay or clash overlay is active
+		if _task_overlay.visible or _clash_overlay.visible:
+			return
+		_toggle_pause()
+
+
+func _toggle_pause() -> void:
+	var is_paused: bool = not GameState.match_state.get("is_paused", false)
+	GameState.match_state["is_paused"] = is_paused
+	if is_paused:
+		GameState.current_state = Enums.GameState.PAUSED
+		_pause_menu.show_menu()
+	else:
+		GameState.current_state = Enums.GameState.IN_GAME
+		_pause_menu.hide_menu()
 
 
 func _spawn_location_markers(tile_size: int) -> void:
@@ -214,17 +233,9 @@ func _handle_exit_interaction() -> void:
 	var has_item: bool = GameState.player.get("has_item", false)
 	var result := _win_condition.check_player_at_exit(has_item)
 	if result == WinConditionManager.Result.PLAYER_WIN:
-		# match_ended signal already emitted by WinConditionManager
 		pass
 	else:
-		_show_rejection_message("You need your item to exit!")
-
-
-func _show_rejection_message(msg: String) -> void:
-	_label_rejection.text = msg
-	_label_rejection.visible = true
-	var timer := get_tree().create_timer(2.5)
-	timer.timeout.connect(func(): _label_rejection.visible = false)
+		_hud.show_rejection_message("You need your item to exit!")
 
 
 func _on_task_completed(location_id: int) -> void:
@@ -237,10 +248,10 @@ func _on_task_completed(location_id: int) -> void:
 		_player.stats.add_size(1)
 		SignalBus.player_size_changed.emit(_player.stats.size)
 		GameState.player["size"] = _player.stats.size
-		$UI/LabelSize.text = "Size: %d" % _player.stats.size
+		_hud.update_size(_player.stats.size)
 	elif loc.item_type == Enums.ItemType.PLAYER_ITEM:
 		GameState.player["has_item"] = true
-		GameState.player["item_id"] = GameState.config.get("item_id", 0)
+		GameState.player["item_id"] = GameState.config.get("item_id", "")
 		SignalBus.player_item_collected.emit()
 
 	# Update marker to green
@@ -252,13 +263,12 @@ func _on_task_completed(location_id: int) -> void:
 
 
 func _on_player_item_collected() -> void:
-	$UI/LabelItem.text = "Item: Collected!"
+	_hud.show_item_collected()
 
 
 func _on_player_energy_changed(value: float) -> void:
-	$UI/LabelEnergy.text = "Energy: %d%%" % int(value)
-	var speed_text := "FULL" if value > 0.0 else "HALF"
-	$UI/LabelSpeed.text = "Speed: %s" % speed_text
+	_hud.update_energy(value)
+	_hud.update_speed(value > 0.0)
 
 
 func _on_match_ended(result: String) -> void:
@@ -287,8 +297,16 @@ func _on_play_again() -> void:
 	SceneManager.go_to_game_scene()
 
 
+func _on_pause_resume() -> void:
+	_toggle_pause()
+
+
+func _on_pause_save() -> void:
+	# Phase 10: trigger save system
+	pass
+
+
 ## Proximity-based clash detection. Called every frame from _process.
-## Triggers player-AI and AI-AI clashes when characters are close enough.
 func _check_clashes() -> void:
 	var clash_dist := float(_tile_size) * 1.0
 
@@ -326,22 +344,16 @@ func _on_player_clash_triggered(opp: AIOpponent) -> void:
 	_clash_active = true
 	_player.freeze()
 
-	# Resolve the dice roll.
 	var result := ClashResolver.resolve(_player.stats.size, opp.stats.size, _clash_rng)
 	var player_won: bool = result["winner"] == "a"
 
-	# Determine penalty parameters based on the winner's stats.
 	var winner_size: int = _player.stats.size if player_won else opp.stats.size
 	var winner_energy: float = _player.stats.energy if player_won else opp.stats.energy
 	var penalty_duration: float = ClashResolver.get_penalty_duration(winner_energy)
 
-	# Apply penalty to the loser.
 	if player_won:
 		opp.brain.start_penalty(penalty_duration)
-	# Player loses — they stay frozen until ClashOverlay emits penalty_completed.
 
-	# Apply cooldowns: base buffer + full penalty duration so neither character
-	# can re-clash until the penalty has expired.
 	var total_cooldown := Enums.CLASH_COOLDOWN_SECONDS + penalty_duration
 	_player._clash_cooldown = total_cooldown
 	opp._clash_cooldown = total_cooldown
@@ -351,10 +363,8 @@ func _on_player_clash_triggered(opp: AIOpponent) -> void:
 	_player.global_position += sep_dir * float(_tile_size) * 0.6
 	opp.global_position -= sep_dir * float(_tile_size) * 0.6
 
-	# Load custom task for penalty display.
 	var task := ClashTaskLoader.load_active_task()
 
-	# Show clash overlay.
 	_clash_overlay.show_clash_result({
 		"player_won": player_won,
 		"player_roll": result["roll_a"],

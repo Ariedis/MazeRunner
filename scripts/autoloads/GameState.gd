@@ -15,7 +15,8 @@ var config: Dictionary = {
 	"num_opponents": 1,
 	"ai_difficulties": [],
 	"seed": 0,
-	"item_id": -1
+	"item_id": "",
+	"avatar_id": 0,
 }
 
 var player: Dictionary = {
@@ -23,7 +24,7 @@ var player: Dictionary = {
 	"size": 1,
 	"energy": 100.0,
 	"has_item": false,
-	"item_id": -1,
+	"item_id": "",
 	"position": Vector2.ZERO,
 	"explored_cells": []
 }
@@ -37,11 +38,11 @@ var match_state: Dictionary = {
 
 func reset_for_new_game() -> void:
 	player = {
-		"avatar_id": 0,
+		"avatar_id": config.get("avatar_id", 0),
 		"size": 1,
 		"energy": 100.0,
 		"has_item": false,
-		"item_id": -1,
+		"item_id": "",
 		"position": Vector2.ZERO,
 		"explored_cells": []
 	}
@@ -51,6 +52,11 @@ func reset_for_new_game() -> void:
 		"is_paused": false
 	}
 	SignalBus.game_config_changed.emit()
+
+
+## Returns true when a save file exists. Phase 10 will implement actual file checks.
+func has_save_data() -> bool:
+	return false
 
 
 func apply_save_data(data: Dictionary) -> void:

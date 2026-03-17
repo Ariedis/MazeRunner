@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://newgamescreen"]
+
+[ext_resource type="Script" path="res://scenes/menus/NewGameScreen.gd" id="1_newgamescreen"]
+
+[node name="NewGameScreen" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_newgamescreen")

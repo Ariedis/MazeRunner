@@ -19,7 +19,7 @@
 | 6 | Item System & Win Condition | COMPLETE | [spec](phases/phase-6-item-system.md) |
 | 7 | AI Opponents | COMPLETE | [spec](phases/phase-7-ai-opponents.md) |
 | 8 | Clash System | COMPLETE | [spec](phases/phase-8-clash-system.md) |
-| 9 | UI & Menus | NOT STARTED | [spec](phases/phase-9-ui-menus.md) |
+| 9 | UI & Menus | COMPLETE | [spec](phases/phase-9-ui-menus.md) |
 | 10 | Save & Load System | NOT STARTED | [spec](phases/phase-10-save-load.md) |
 | 11 | Settings & Customization | NOT STARTED | [spec](phases/phase-11-settings.md) |
 | 12 | Polish & Integration | NOT STARTED | [spec](phases/phase-12-polish.md) |
@@ -62,8 +62,13 @@
 - **AI Navigation:** A* pathfinding on maze graph; `AIBrain` state machine (EXPLORE/GO_TO_LOC/DO_TASK/GO_TO_EXIT/RESTING/PENALTY) with difficulty controlling exploration strategy, movement speed (0.8×/1.0×/1.2×), task wait (1.5×/1.0×/0.7×), and energy rest thresholds (40→80 / 20→50 / 5→30). Hard AI has full omniscience (all locations + exit known from start). Easy/Medium discover locations and exit by physical contact only.
 - **Clash System:** Player (collision layer 2) and AI (layer 4) use non-overlapping masks so they phase through each other — no blocking. Clash triggers are distance-based: `GameScene._check_clashes()` checks all character pairs every frame. Player-AI clashes show `ClashOverlay`; AI-AI clashes resolve instantly. Both characters receive a cooldown equal to `CLASH_COOLDOWN_SECONDS + penalty_duration` after a clash. `ClashResolver` is a pure-logic class (static methods) for dice rolling and penalty parameter lookup.
 - **Save Format:** JSON serialization of full game state *(Phase 10)*
-- **Code-Driven UI (Phases 5–8):** `TaskOverlay`, `ResultsScreen`, and `ClashOverlay` are built entirely in GDScript with no `.tscn` files — reduces scene-file maintenance during mid-game phases. Proper UI with theming deferred to Phase 9
+- **Code-Driven UI:** All UI elements (overlays, HUD, menus) are built entirely in GDScript with no `.tscn` node hierarchies — reduces scene-file maintenance and keeps layout logic version-controlled alongside logic. `TaskOverlay`, `ResultsScreen`, `ClashOverlay` (Phases 5–8), `GameHUD`, `PauseMenu`, and `NewGameScreen` (Phase 9) all follow this pattern.
 - **Scene Management:** Container-swap pattern — all scenes load into a `SceneContainer` node inside `Main.tscn`; autoloads (Enums → SignalBus → GameState → SceneManager) remain alive across every transition
+- **HUD & Pause:** `GameHUD` (CanvasLayer z=5) owns the portrait, stat labels, energy bar, and item indicator. `PauseMenu` (CanvasLayer z=10) is toggled by `GameScene._unhandled_input()` on Escape; blocked while task/clash overlays are active. CanvasLayer z-ordering: HUD (5) → PauseMenu (10) → ClashOverlay (15) → ResultsScreen (20) → TaskOverlay (highest).
+- **Character Creator Logic:** `CharacterCreatorLogic` (pure `RefCounted`) manages stat allocation with budget constraints independently of any UI node — keeps logic unit-testable without a running scene.
+- **New Game Config Validation:** `NewGameConfig` (static methods on `RefCounted`) validates the config dict before `GameState` is written — item selected, opponent count in bounds, difficulty array length matches opponent count.
+- **GameState `item_id`:** Stored as a `String` (e.g. `"golden_key"`) matching `ItemRegistry` IDs. Default is `""` (empty = not set). Previously was `-1` (int) — changed in Phase 9 to align with `ItemRegistry`.
+- **Phase 10 Stubs:** `GameState.has_save_data()` returns `false`; Main Menu Continue/Load Game buttons are disabled; `PauseMenu` Save Game emits a signal with no handler — all wired up in Phase 10.
 
 ### Suggested Additional Features (Future)
 - **Power-ups:** Temporary speed boost, energy refill, reveal nearby area

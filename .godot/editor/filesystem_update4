@@ -1,4 +1,0 @@
-res://scenes/ai/AIOpponent.gd
-res://scenes/game/GameScene.gd
-res://scenes/player/Player.gd
-res://scripts/autoloads/SignalBus.gd

@@ -21,7 +21,8 @@
       "Bash(ls /d/*.txt)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File \"D:\\\\Coding\\\\Projects\\\\Maze Runner\\\\run_tests.ps1\" 2>&1)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -Command \"icacls 'D:\\\\Users\\\\Ariedis\\\\Downloads\\\\Godot_v4.6.1-stable_win64.exe'\" 2>&1)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -Command \"whoami; [System.Security.Principal.WindowsIdentity]::GetCurrent\\(\\).Name\" 2>&1)"
+      "Bash(powershell.exe -ExecutionPolicy Bypass -Command \"whoami; [System.Security.Principal.WindowsIdentity]::GetCurrent\\(\\).Name\" 2>&1)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -13,23 +13,30 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -150.0
-offset_top = -100.0
+offset_top = -140.0
 offset_right = 150.0
-offset_bottom = 100.0
+offset_bottom = 140.0
 alignment = 1
 
 [node name="LabelTitle" type="Label" parent="VBoxContainer"]
 text = "MAZE BATTLE"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
 
-[node name="BtnStartGame" type="Button" parent="VBoxContainer"]
-text = "Start Game"
+[node name="BtnNewGame" type="Button" parent="VBoxContainer"]
+text = "New Game"
 
-[node name="BtnPlaceholderA" type="Button" parent="VBoxContainer"]
-text = "Placeholder Scene A"
+[node name="BtnContinue" type="Button" parent="VBoxContainer"]
+text = "Continue"
+disabled = true
 
-[node name="BtnPlaceholderB" type="Button" parent="VBoxContainer"]
-text = "Placeholder Scene B"
+[node name="BtnLoadGame" type="Button" parent="VBoxContainer"]
+text = "Load Game"
+disabled = true
+
+[node name="BtnSettings" type="Button" parent="VBoxContainer"]
+text = "Settings"
+disabled = true
 
 [node name="BtnQuit" type="Button" parent="VBoxContainer"]
 text = "Quit"

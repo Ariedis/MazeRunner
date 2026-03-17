@@ -3,25 +3,22 @@ extends Control
 
 func _ready() -> void:
 	GameState.current_state = Enums.GameState.MENU
-	$VBoxContainer/BtnStartGame.pressed.connect(_on_start_game_pressed)
-	$VBoxContainer/BtnPlaceholderA.pressed.connect(_on_placeholder_a_pressed)
-	$VBoxContainer/BtnPlaceholderB.pressed.connect(_on_placeholder_b_pressed)
-	$VBoxContainer/BtnQuit.pressed.connect(_on_quit_pressed)
+	$VBoxContainer/BtnNewGame.pressed.connect(_on_new_game)
+	$VBoxContainer/BtnContinue.pressed.connect(_on_continue)
+	$VBoxContainer/BtnQuit.pressed.connect(_on_quit)
+
+	# Continue is only enabled when a save exists (Phase 10 will implement saves).
+	$VBoxContainer/BtnContinue.disabled = not GameState.has_save_data()
 
 
-func _on_start_game_pressed() -> void:
-	GameState.config["map_size"] = Enums.MapSize.SMALL
-	GameState.config["seed"] = 0
-	SceneManager.go_to_game_scene()
+func _on_new_game() -> void:
+	SceneManager.go_to_new_game_screen()
 
 
-func _on_placeholder_a_pressed() -> void:
-	SceneManager.go_to_placeholder_a()
+func _on_continue() -> void:
+	# Phase 10: load most recent save and go to game scene
+	pass
 
 
-func _on_placeholder_b_pressed() -> void:
-	SceneManager.go_to_placeholder_b()
-
-
-func _on_quit_pressed() -> void:
+func _on_quit() -> void:
 	get_tree().quit()

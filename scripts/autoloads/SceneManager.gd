@@ -1,6 +1,7 @@
 extends Node
 
 const SCENE_MAIN_MENU: String = "res://scenes/menus/MainMenu.tscn"
+const SCENE_NEW_GAME_SCREEN: String = "res://scenes/menus/NewGameScreen.tscn"
 const SCENE_PLACEHOLDER_A: String = "res://scenes/placeholders/PlaceholderA.tscn"
 const SCENE_PLACEHOLDER_B: String = "res://scenes/placeholders/PlaceholderB.tscn"
 const SCENE_GAME_SCENE: String = "res://scenes/game/GameScene.tscn"
@@ -47,6 +48,10 @@ func go_to(path: String) -> void:
 
 func go_to_main_menu() -> void:
 	_load_scene(SCENE_MAIN_MENU)
+
+
+func go_to_new_game_screen() -> void:
+	_load_scene(SCENE_NEW_GAME_SCREEN)
 
 
 func go_to_placeholder_a() -> void:
