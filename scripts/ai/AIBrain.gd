@@ -40,6 +40,18 @@ var _current_target: Vector2i = Vector2i(-1, -1)
 var _pathfinder: AStarPathfinder
 var _rng: RandomNumberGenerator
 
+## Positions of available power-ups (set by GameScene for Hard AI).
+var powerup_positions: Array = []  # Array of Vector2i
+
+## Teleporter pairs (set by GameScene when hazards are enabled).
+var teleporter_pairs: Dictionary = {}  # Vector2i -> Vector2i
+
+## Cells treated as impassable in pathfinding (forbidden dead-end traps).
+var forbidden_cells: Array = []  # Array of Vector2i
+
+## Dead-end trap positions this AI has triggered (used by Medium AI to avoid revisiting).
+var triggered_dead_ends: Array = []  # Array of Vector2i
+
 
 ## Initialise the brain. Hard AI gets full location/exit knowledge upfront.
 func setup(diff: int, maze_data: MazeData, rng: RandomNumberGenerator) -> void:
@@ -247,7 +259,13 @@ func _plan_next_path(from: Vector2i, maze_data: MazeData) -> void:
 	if target == Vector2i(-1, -1):
 		return
 
-	var path := _pathfinder.find_path(maze_data, from, target)
+	# Merge static forbidden_cells with dynamically-triggered dead ends (Medium AI).
+	var all_forbidden := forbidden_cells.duplicate()
+	for pos in triggered_dead_ends:
+		if not all_forbidden.has(pos):
+			all_forbidden.append(pos)
+
+	var path := _pathfinder.find_path(maze_data, from, target, teleporter_pairs, all_forbidden)
 	if path.size() > 1:
 		path.pop_front()  # Remove start cell — already there.
 		current_path = path
@@ -294,6 +312,9 @@ func _pick_explore_target(from: Vector2i, maze_data: MazeData) -> Vector2i:
 				return _nearest_cell(from, frontier)
 			return frontier[_rng.randi() % frontier.size()]
 		Enums.Difficulty.HARD:
+			# Seek nearest power-up when exploring.
+			if not powerup_positions.is_empty():
+				return _nearest_cell(from, powerup_positions)
 			# Bias toward frontier cell closest to item location / exit.
 			if not known_uncompleted_locs.is_empty():
 				var bias := _get_best_location_target(from)

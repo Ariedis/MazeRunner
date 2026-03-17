@@ -15,6 +15,7 @@ var _label_size: Label
 var _label_speed: Label
 var _energy_fill: ColorRect
 var _label_rejection: Label
+var _label_traps: Label
 
 ## item_collected tracks whether the indicator is visible (for testing).
 var item_collected: bool = false
@@ -100,6 +101,14 @@ func _build_ui() -> void:
 	_energy_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	energy_bg.add_child(_energy_fill)
 
+	# Trap counter (hidden until traps feature is enabled).
+	_label_traps = Label.new()
+	_label_traps.text = "Traps: 0"
+	_label_traps.add_theme_font_size_override("font_size", 14)
+	_label_traps.add_theme_color_override("font_color", Color(0.9, 0.35, 0.35))
+	_label_traps.visible = false
+	stats.add_child(_label_traps)
+
 	# Rejection message (centered near top)
 	_label_rejection = Label.new()
 	_label_rejection.add_theme_font_size_override("font_size", 20)
@@ -149,6 +158,11 @@ func update_speed(is_full: bool) -> void:
 func show_item_collected() -> void:
 	item_collected = true
 	_item_indicator.visible = true
+
+
+func show_trap_count(count: int) -> void:
+	_label_traps.text = "Traps: %d" % count
+	_label_traps.visible = true
 
 
 func show_rejection_message(msg: String) -> void:

@@ -53,7 +53,7 @@ func load_most_recent() -> Variant:
 	var best: Dictionary = {}
 	var best_time: String = ""
 	for slot in range(1, MAX_SLOTS + 1):
-		var save := _read_save_file(_slot_path(slot))
+		var save: Variant = _read_save_file(_slot_path(slot))
 		if save == null:
 			continue
 		var ts: String = save.get("timestamp", "")
@@ -95,7 +95,7 @@ func get_all_slot_info() -> Array[Dictionary]:
 			result.append(info)
 			continue
 
-		var save := _read_save_file(path)
+		var save: Variant = _read_save_file(path)
 		if save == null:
 			info["exists"] = true
 			info["corrupt"] = true
@@ -137,7 +137,10 @@ func capture_game_state(
 	ai_opponents: Array,
 	elapsed_msec: int,
 	renderer: MazeRenderer,
-	clash_active: bool
+	clash_active: bool,
+	powerup_manager = null,
+	trap_manager = null,
+	hazard_manager = null
 ) -> Dictionary:
 	var data := {}
 
@@ -222,6 +225,22 @@ func capture_game_state(
 	# Timing
 	data["elapsed_msec"] = elapsed_msec
 	data["clash_active"] = clash_active
+
+	# Power-ups
+	if powerup_manager != null:
+		data["powerups"] = powerup_manager.save_state()
+
+	# Traps
+	if trap_manager != null:
+		data["traps"] = trap_manager.save_state()
+		data["traps"]["player_speed_multiplier"] = player._speed_multiplier
+		data["traps"]["player_speed_timer"] = player._speed_timer
+
+	# Hazards (only triggered dead-ends need saving; rest is deterministic from seed)
+	if hazard_manager != null:
+		data["hazards"] = {
+			"triggered_dead_ends": hazard_manager.save_triggered_traps()
+		}
 
 	return data
 

@@ -14,6 +14,7 @@ var _results_screen: ResultsScreen
 var _start_time_msec: int = 0
 var _match_over: bool = false
 var _ai_opponents: Array = []
+var _ai_last_grid_cells: Array = []  # Tracks each AI's last grid cell for trap/hazard checks.
 var _tile_size: int = 0
 var _clash_overlay: ClashOverlay
 var _clash_active: bool = false
@@ -22,6 +23,11 @@ var _pending_ai_clashes: Array = []  # AI-AI clashes deferred while player clash
 var _hud: GameHUD
 var _pause_menu: PauseMenu
 var _save_slot_panel: SaveSlotPanel
+
+# --- Feature managers (null when feature is disabled) ---
+var _powerup_manager: PowerupManager = null
+var _trap_manager: TrapManager = null
+var _hazard_manager: HazardManager = null
 
 
 func _ready() -> void:
@@ -78,6 +84,39 @@ func _ready() -> void:
 		ai.setup(tile_size, diff, i, _maze_data, _location_manager, _renderer)
 		ai.reached_exit_with_item.connect(_on_ai_reached_exit_with_item)
 		_ai_opponents.append(ai)
+		_ai_last_grid_cells.append(Vector2i(-1, -1))
+
+	# --- Feature: Maze Hazards (generates first so visuals appear under other features) ---
+	if GameState.config.get("enable_hazards", false):
+		_hazard_manager = HazardManager.new()
+		_hazard_manager.name = "HazardManager"
+		add_child(_hazard_manager)
+		_hazard_manager.setup(_maze_data, tile_size, _renderer)
+		# Hard AI knows all dead-end trap positions up front.
+		var trap_positions := _hazard_manager.get_active_dead_end_trap_positions()
+		for ai in _ai_opponents:
+			if ai.brain.difficulty == Enums.Difficulty.HARD:
+				ai.brain.forbidden_cells = trap_positions.duplicate()
+			ai.brain.teleporter_pairs = _maze_data.teleporter_pairs
+
+	# --- Feature: Power-ups ---
+	if GameState.config.get("enable_powerups", false):
+		_powerup_manager = PowerupManager.new()
+		_powerup_manager.name = "PowerupManager"
+		add_child(_powerup_manager)
+		_powerup_manager.setup(_maze_data, tile_size, _renderer)
+		var powerup_positions := _powerup_manager.get_all_positions()
+		for ai in _ai_opponents:
+			if ai.brain.difficulty == Enums.Difficulty.HARD:
+				ai.brain.powerup_positions = powerup_positions.duplicate()
+
+	# --- Feature: Traps ---
+	if GameState.config.get("enable_traps", false):
+		_trap_manager = TrapManager.new()
+		_trap_manager.name = "TrapManager"
+		add_child(_trap_manager)
+		var map_size_val: int = GameState.config.get("map_size", Enums.MapSize.SMALL)
+		_trap_manager.setup(map_size_val, tile_size, _renderer)
 
 	add_child(_fog_renderer)
 
@@ -93,6 +132,7 @@ func _ready() -> void:
 	add_child(_results_screen)
 	_results_screen.play_again_requested.connect(_on_play_again)
 	_results_screen.main_menu_requested.connect(SceneManager.go_to_main_menu)
+	_results_screen.view_leaderboard_requested.connect(_on_view_leaderboard)
 
 	# Clash overlay (CanvasLayer z=15, between task overlay and results)
 	_clash_overlay = ClashOverlay.new()
@@ -121,6 +161,8 @@ func _ready() -> void:
 	_hud.update_size(GameState.player.get("size", 1))
 	_hud.update_energy(GameState.player.get("energy", 100.0))
 	_hud.update_speed(true)
+	if _trap_manager != null:
+		_hud.show_trap_count(_trap_manager.get_player_supply())
 
 	# Pause menu (CanvasLayer z=10)
 	_pause_menu = PauseMenu.new()
@@ -155,15 +197,25 @@ func _process(_delta: float) -> void:
 		return
 
 	_check_clashes()
+	_check_ai_grid_cells()
 
 	var cell := _renderer.world_to_grid(_player.global_position)
 	if cell == _last_grid_cell:
 		return
 	_last_grid_cell = cell
+
 	var revealed := _fog.reveal(cell, _maze_data.width, _maze_data.height)
 	if revealed.size() > 0:
 		_fog_renderer.reveal_cells(revealed)
 		GameState.player["explored_cells"] = _fog.get_explored_array()
+
+	# Power-up pickup (player).
+	if _powerup_manager != null and _powerup_manager.has_powerup_at(cell):
+		_apply_player_powerup(cell)
+
+	# Hazard check (player). Player is immune to own traps.
+	if _hazard_manager != null:
+		_check_player_hazard(cell)
 
 	# Exit check
 	if cell == _maze_data.exit:
@@ -183,6 +235,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _task_overlay.visible or _clash_overlay.visible:
 			return
 		_toggle_pause()
+
+	if event.is_action_pressed("place_trap") and not _match_over and _trap_manager != null:
+		if not GameState.match_state.get("is_paused", false) and not _clash_active and not _task_overlay.visible:
+			_try_place_trap()
 
 
 func _toggle_pause() -> void:
@@ -242,6 +298,139 @@ func _spawn_exit_marker(tile_size: int) -> void:
 	layer.add_child(marker)
 
 
+## Checks all AI opponents for grid cell transitions and applies feature effects.
+func _check_ai_grid_cells() -> void:
+	for i in _ai_opponents.size():
+		if i >= _ai_last_grid_cells.size():
+			continue
+		var ai: AIOpponent = _ai_opponents[i]
+		if ai._match_over:
+			continue
+		var ai_cell := _renderer.world_to_grid(ai.global_position)
+		if ai_cell == _ai_last_grid_cells[i]:
+			continue
+		_ai_last_grid_cells[i] = ai_cell
+
+		# Power-up: Easy ignores, Medium and Hard pick up if on cell.
+		if _powerup_manager != null and _powerup_manager.has_powerup_at(ai_cell):
+			if ai.brain.difficulty != Enums.Difficulty.EASY:
+				_apply_ai_powerup(ai, ai_cell)
+
+		# Trap: player is immune (player placed all traps), AIs are victims.
+		if _trap_manager != null and _trap_manager.has_trap_at(ai_cell):
+			_trap_manager.trigger_trap(ai_cell)
+			ai._speed_multiplier = Enums.TRAP_SLOW_MULTIPLIER
+			ai._speed_timer = Enums.TRAP_SLOW_DURATION
+			ai._flash_timer = 0.35
+			ai._flash_color = Color(1.0, 0.1, 0.1)
+
+		# Hazard.
+		if _hazard_manager != null:
+			_check_ai_hazard(ai, ai_cell)
+
+
+func _apply_player_powerup(cell: Vector2i) -> void:
+	var type := _powerup_manager.consume_powerup(cell)
+	match type:
+		Enums.PowerupType.SPEED_BOOST:
+			_player._speed_multiplier = Enums.POWERUP_SPEED_BOOST_MULTIPLIER
+			_player._speed_timer = Enums.POWERUP_SPEED_BOOST_DURATION
+		Enums.PowerupType.ENERGY_REFILL:
+			_player.stats.energy = minf(100.0, _player.stats.energy + Enums.POWERUP_ENERGY_REFILL_AMOUNT)
+			GameState.player["energy"] = _player.stats.energy
+			SignalBus.player_energy_changed.emit(_player.stats.energy)
+		Enums.PowerupType.AREA_REVEAL:
+			var old_radius := _fog.reveal_radius
+			_fog.reveal_radius = Enums.POWERUP_AREA_REVEAL_RADIUS
+			var large_reveal := _fog.reveal(_last_grid_cell, _maze_data.width, _maze_data.height)
+			_fog.reveal_radius = old_radius
+			if large_reveal.size() > 0:
+				_fog_renderer.reveal_cells(large_reveal)
+				GameState.player["explored_cells"] = _fog.get_explored_array()
+	_sync_hard_ai_powerup_knowledge()
+
+
+func _apply_ai_powerup(ai: AIOpponent, cell: Vector2i) -> void:
+	var type := _powerup_manager.consume_powerup(cell)
+	match type:
+		Enums.PowerupType.SPEED_BOOST:
+			ai._speed_multiplier = Enums.POWERUP_SPEED_BOOST_MULTIPLIER
+			ai._speed_timer = Enums.POWERUP_SPEED_BOOST_DURATION
+		Enums.PowerupType.ENERGY_REFILL:
+			ai.stats.energy = minf(100.0, ai.stats.energy + Enums.POWERUP_ENERGY_REFILL_AMOUNT)
+		Enums.PowerupType.AREA_REVEAL:
+			pass  # No fog benefit for AI.
+	_sync_hard_ai_powerup_knowledge()
+
+
+func _sync_hard_ai_powerup_knowledge() -> void:
+	if _powerup_manager == null:
+		return
+	var remaining := _powerup_manager.get_all_positions()
+	for ai in _ai_opponents:
+		if ai.brain.difficulty == Enums.Difficulty.HARD:
+			ai.brain.powerup_positions = remaining.duplicate()
+
+
+func _check_player_hazard(cell: Vector2i) -> void:
+	# Dead-end trap.
+	if _hazard_manager.is_dead_end_trap(cell):
+		_hazard_manager.trigger_dead_end_trap(cell)
+		_player.stats.energy = maxf(0.0, _player.stats.energy - Enums.HAZARD_DEAD_END_ENERGY_DRAIN)
+		GameState.player["energy"] = _player.stats.energy
+		SignalBus.player_energy_changed.emit(_player.stats.energy)
+		_player._hazard_freeze_timer = Enums.HAZARD_DEAD_END_FREEZE_DURATION
+		return
+	# Teleporter.
+	if _hazard_manager.has_teleporter(cell) and not _hazard_manager.is_on_cooldown(cell):
+		var partner := _hazard_manager.get_teleporter_partner(cell)
+		if partner != Vector2i(-1, -1):
+			_hazard_manager.start_teleporter_cooldown(cell)
+			_player.global_position = _renderer.get_world_position(partner)
+			_last_grid_cell = partner
+
+
+func _check_ai_hazard(ai: AIOpponent, cell: Vector2i) -> void:
+	# Dead-end trap.
+	if _hazard_manager.is_dead_end_trap(cell):
+		_hazard_manager.trigger_dead_end_trap(cell)
+		ai.stats.energy = maxf(0.0, ai.stats.energy - Enums.HAZARD_DEAD_END_ENERGY_DRAIN)
+		ai._hazard_freeze_timer = Enums.HAZARD_DEAD_END_FREEZE_DURATION
+		# Medium AI remembers triggered dead ends to avoid revisiting.
+		if ai.brain.difficulty == Enums.Difficulty.MEDIUM:
+			if not ai.brain.triggered_dead_ends.has(cell):
+				ai.brain.triggered_dead_ends.append(cell)
+		return
+	# Teleporter.
+	if _hazard_manager.has_teleporter(cell) and not _hazard_manager.is_on_cooldown(cell):
+		var partner := _hazard_manager.get_teleporter_partner(cell)
+		if partner != Vector2i(-1, -1):
+			_hazard_manager.start_teleporter_cooldown(cell)
+			ai.global_position = _renderer.get_world_position(partner)
+			var ai_idx := _ai_opponents.find(ai)
+			if ai_idx >= 0:
+				_ai_last_grid_cells[ai_idx] = partner
+
+
+func _try_place_trap() -> void:
+	var cell := _renderer.world_to_grid(_player.global_position)
+	if _trap_manager.is_valid_placement(cell, _maze_data):
+		_trap_manager.place_trap(cell)
+		_hud.show_trap_count(_trap_manager.get_player_supply())
+	elif _trap_manager.get_player_supply() <= 0:
+		_hud.show_rejection_message("No traps remaining!")
+	elif not _trap_manager.can_place():
+		_hud.show_rejection_message("Trap cooldown active!")
+	else:
+		_hud.show_rejection_message("Cannot place trap here!")
+
+
+func _on_view_leaderboard() -> void:
+	var overlay := LeaderboardOverlay.new()
+	overlay.name = "LeaderboardOverlay"
+	add_child(overlay)
+
+
 func _handle_exit_interaction() -> void:
 	if _match_over:
 		return
@@ -298,7 +487,15 @@ func _on_match_ended(result: String) -> void:
 	var final_size: int = GameState.player.get("size", 1)
 
 	if result == "player_win":
-		_results_screen.show_win(elapsed_sec, explored, final_size)
+		var rank := -1
+		if GameState.config.get("enable_leaderboard", false):
+			rank = LeaderboardManager.add_entry(
+				GameState.config.get("map_size", Enums.MapSize.SMALL),
+				elapsed_sec,
+				final_size,
+				GameState.config.get("num_opponents", 1)
+			)
+		_results_screen.show_win(elapsed_sec, explored, final_size, rank)
 	else:
 		_results_screen.show_loss("Opponent", elapsed_sec, explored, final_size)
 
@@ -327,7 +524,8 @@ func _on_save_slot_selected(slot: int) -> void:
 	var elapsed := Time.get_ticks_msec() - _start_time_msec
 	var data := SaveManager.capture_game_state(
 		_maze_data, _player, _fog, _location_manager,
-		_ai_opponents, elapsed, _renderer, _clash_active
+		_ai_opponents, elapsed, _renderer, _clash_active,
+		_powerup_manager, _trap_manager, _hazard_manager
 	)
 	var success := SaveManager.save_game(slot, data)
 	if success:
@@ -433,6 +631,27 @@ func _apply_save_data(data: Dictionary) -> void:
 		var path_arr: Array = opp_data.get("current_path", [])
 		for p in path_arr:
 			brain.current_path.append(SaveManager.arr_to_v2i(p))
+
+	# Restore power-ups
+	if _powerup_manager != null and data.has("powerups"):
+		_powerup_manager.load_state(data["powerups"])
+		var powerup_positions := _powerup_manager.get_all_positions()
+		for ai in _ai_opponents:
+			if ai.brain.difficulty == Enums.Difficulty.HARD:
+				ai.brain.powerup_positions = powerup_positions.duplicate()
+
+	# Restore traps
+	if _trap_manager != null and data.has("traps"):
+		var trap_data: Dictionary = data["traps"]
+		_trap_manager.load_state(trap_data)
+		_hud.show_trap_count(_trap_manager.get_player_supply())
+		_player._speed_multiplier = trap_data.get("player_speed_multiplier", 1.0)
+		_player._speed_timer = trap_data.get("player_speed_timer", 0.0)
+
+	# Restore hazard triggered state
+	if _hazard_manager != null and data.has("hazards"):
+		var hazard_data: Dictionary = data["hazards"]
+		_hazard_manager.load_triggered_traps(hazard_data.get("triggered_dead_ends", []))
 
 	# Force grid cell recheck on next frame
 	_last_grid_cell = Vector2i(-1, -1)

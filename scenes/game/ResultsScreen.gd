@@ -3,11 +3,14 @@ extends CanvasLayer
 
 signal play_again_requested()
 signal main_menu_requested()
+signal view_leaderboard_requested()
 
 var _label_title: Label
 var _label_time: Label
 var _label_locations: Label
 var _label_size: Label
+var _label_rank: Label
+var _btn_view_leaderboard: Button
 var _btn_play_again: Button
 var _btn_main_menu: Button
 
@@ -18,12 +21,12 @@ func _ready() -> void:
 
 	var panel := Panel.new()
 	panel.name = "ResultsPanel"
-	panel.custom_minimum_size = Vector2(500, 360)
+	panel.custom_minimum_size = Vector2(500, 430)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -250
-	panel.offset_top = -180
+	panel.offset_top = -215
 	panel.offset_right = 250
-	panel.offset_bottom = 180
+	panel.offset_bottom = 215
 	add_child(panel)
 
 	var vbox := VBoxContainer.new()
@@ -56,9 +59,23 @@ func _ready() -> void:
 	_label_size.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(_label_size)
 
+	_label_rank = Label.new()
+	_label_rank.name = "LabelRank"
+	_label_rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_rank.add_theme_font_size_override("font_size", 20)
+	_label_rank.visible = false
+	vbox.add_child(_label_rank)
+
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 16)
+	spacer.custom_minimum_size = Vector2(0, 8)
 	vbox.add_child(spacer)
+
+	_btn_view_leaderboard = Button.new()
+	_btn_view_leaderboard.name = "BtnViewLeaderboard"
+	_btn_view_leaderboard.text = "View Leaderboard"
+	_btn_view_leaderboard.visible = false
+	vbox.add_child(_btn_view_leaderboard)
+	_btn_view_leaderboard.pressed.connect(func(): emit_signal("view_leaderboard_requested"))
 
 	_btn_play_again = Button.new()
 	_btn_play_again.name = "BtnPlayAgain"
@@ -73,10 +90,21 @@ func _ready() -> void:
 	_btn_main_menu.pressed.connect(_on_main_menu_pressed)
 
 
-func show_win(time_sec: float, locations_explored: int, final_size: int) -> void:
+## rank: 1-based leaderboard rank, or -1 if leaderboard not enabled / not placed.
+func show_win(time_sec: float, locations_explored: int, final_size: int, rank: int = -1) -> void:
 	_label_title.text = "You Win!"
 	_label_title.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3))
 	_fill_stats(time_sec, locations_explored, final_size)
+	if rank == 1:
+		_label_rank.text = "New Record!"
+		_label_rank.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
+		_label_rank.visible = true
+		_btn_view_leaderboard.visible = true
+	elif rank > 1:
+		_label_rank.text = "Leaderboard Rank: #%d" % rank
+		_label_rank.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+		_label_rank.visible = true
+		_btn_view_leaderboard.visible = true
 	visible = true
 
 

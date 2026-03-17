@@ -10,6 +10,10 @@ var exit: Vector2i = Vector2i(-1, -1)
 var player_spawn: Vector2i = Vector2i(-1, -1)
 var ai_spawns: Array[Vector2i] = []
 
+## Populated by HazardManager when hazards feature is enabled.
+## Maps portal position (Vector2i) -> partner position (Vector2i).
+var teleporter_pairs: Dictionary = {}
+
 func _init(w: int, h: int) -> void:
 	width = w
 	height = h

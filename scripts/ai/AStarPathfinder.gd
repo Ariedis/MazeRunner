@@ -3,8 +3,11 @@ extends RefCounted
 
 
 ## Finds shortest path from [from] to [to] through the maze.
+## teleporter_pairs: optional dict of Vector2i->Vector2i for teleporter edges.
+## forbidden: optional list of Vector2i cells to treat as impassable.
 ## Returns Array[Vector2i] including both endpoints. Returns [] if no path.
-func find_path(maze_data: MazeData, from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+func find_path(maze_data: MazeData, from: Vector2i, to: Vector2i,
+		teleporter_pairs: Dictionary = {}, forbidden: Array = []) -> Array[Vector2i]:
 	if from == to:
 		return [from]
 	if not maze_data.is_valid(from.x, from.y) or not maze_data.is_valid(to.x, to.y):
@@ -33,8 +36,17 @@ func find_path(maze_data: MazeData, from: Vector2i, to: Vector2i) -> Array[Vecto
 		if current == to:
 			return _reconstruct_path(came_from, current)
 
-		for neighbor in get_passable_neighbors(maze_data, current):
+		var neighbors := get_passable_neighbors(maze_data, current)
+		# Add teleporter destination as a passable neighbor if available.
+		if not teleporter_pairs.is_empty() and teleporter_pairs.has(current):
+			var tele_dest: Vector2i = teleporter_pairs[current]
+			if not neighbors.has(tele_dest):
+				neighbors.append(tele_dest)
+
+		for neighbor in neighbors:
 			if closed.has(neighbor):
+				continue
+			if forbidden.has(neighbor):
 				continue
 			var tg: float = g_score.get(current, INF) + 1.0
 			if tg < g_score.get(neighbor, INF):

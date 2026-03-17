@@ -104,3 +104,50 @@ const ENERGY_REGEN: float = 2.0
 
 const FULL_SPEED: float = 150.0
 const HALF_SPEED: float = 75.0
+
+# --- Power-ups ---
+enum PowerupType {
+	SPEED_BOOST = 0,
+	ENERGY_REFILL = 1,
+	AREA_REVEAL = 2,
+}
+
+const POWERUP_SPEED_BOOST_MULTIPLIER: float = 1.8
+const POWERUP_SPEED_BOOST_DURATION: float = 5.0
+const POWERUP_ENERGY_REFILL_AMOUNT: float = 50.0
+const POWERUP_AREA_REVEAL_RADIUS: int = 5
+
+const POWERUP_COUNTS: Dictionary = {
+	0: 3,   # SMALL
+	1: 6,   # MEDIUM
+	2: 10,  # LARGE
+}
+
+# --- Traps ---
+const TRAP_SUPPLY: Dictionary = {
+	0: 2,   # SMALL
+	1: 3,   # MEDIUM
+	2: 5,   # LARGE
+}
+
+const TRAP_SLOW_DURATION: float = 4.0
+const TRAP_SLOW_MULTIPLIER: float = 0.4
+const TRAP_PLACEMENT_COOLDOWN: float = 3.0
+
+# --- Maze Hazards ---
+const HAZARD_TELEPORTER_PAIRS: Dictionary = {
+	0: 1,   # SMALL
+	1: 2,   # MEDIUM
+	2: 3,   # LARGE
+}
+
+const HAZARD_ONE_WAY_DOORS: Dictionary = {
+	0: 2,   # SMALL
+	1: 4,   # MEDIUM
+	2: 6,   # LARGE
+}
+
+const HAZARD_DEAD_END_PERCENT: float = 0.30
+const HAZARD_DEAD_END_ENERGY_DRAIN: float = 25.0
+const HAZARD_DEAD_END_FREEZE_DURATION: float = 2.0
+const HAZARD_TELEPORTER_COOLDOWN: float = 1.0

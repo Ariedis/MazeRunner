@@ -19,6 +19,17 @@ var _visual: Polygon2D
 ## Cooldown timer (seconds) to prevent immediate re-clash after a clash resolves.
 var _clash_cooldown: float = 0.0
 
+## Speed multiplier from power-ups (1.8x) or trap slow (0.4x). Reverts to 1.0 when timer expires.
+var _speed_multiplier: float = 1.0
+var _speed_timer: float = 0.0
+
+## Freeze timer from maze hazards (dead-end traps). Counts down to 0.
+var _hazard_freeze_timer: float = 0.0
+
+## Brief color flash (e.g. red when hit by a trap). Timer counts down to 0.
+var _flash_timer: float = 0.0
+var _flash_color: Color = Color.WHITE
+
 ## Dedicated RNG for clash dice rolls, seeded independently of the navigation RNG.
 var _clash_rng: RandomNumberGenerator
 
@@ -97,6 +108,23 @@ func _physics_process(delta: float) -> void:
 	if _clash_cooldown > 0.0:
 		_clash_cooldown -= delta
 
+	# Tick speed effect timer.
+	if _speed_timer > 0.0:
+		_speed_timer -= delta
+		if _speed_timer <= 0.0:
+			_speed_multiplier = 1.0
+
+	# Tick flash timer.
+	if _flash_timer > 0.0:
+		_flash_timer -= delta
+
+	# Tick hazard freeze timer.
+	if _hazard_freeze_timer > 0.0:
+		_hazard_freeze_timer -= delta
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
 	if _match_over:
 		velocity = Vector2.ZERO
 		return
@@ -160,7 +188,7 @@ func _physics_process(delta: float) -> void:
 	var target := _renderer.get_world_position(next_step)
 	var dir := target - global_position
 	var speed_mult: float = Enums.AI_SPEED_MULTIPLIER.get(_difficulty, 1.0)
-	velocity = dir.normalized() * stats.current_speed() * speed_mult
+	velocity = dir.normalized() * stats.current_speed() * speed_mult * _speed_multiplier
 	stats.drain(delta)
 	move_and_slide()
 
@@ -191,6 +219,11 @@ func resolve_ai_ai_clash(other: AIOpponent) -> void:
 
 func _update_visual() -> void:
 	if _visual == null:
+		return
+	# Flash from trap or hazard overrides normal color briefly.
+	if _flash_timer > 0.0:
+		_visual.color = _flash_color
+		_visual.modulate.a = 1.0
 		return
 	var base_color: Color = _STATE_COLORS.get(brain.state, Color(1.0, 0.5, 0.15))
 	if brain.state == AIBrain.State.PENALTY:

@@ -1,6 +1,7 @@
 extends Control
 
 var _load_panel: SaveSlotPanel = null
+var _leaderboard_overlay: LeaderboardOverlay = null
 
 
 func _ready() -> void:
@@ -14,6 +15,15 @@ func _ready() -> void:
 	# Continue is only enabled when a save exists.
 	$VBoxContainer/BtnContinue.disabled = not GameState.has_save_data()
 	$VBoxContainer/BtnLoadGame.disabled = not GameState.has_save_data()
+
+	# Add Leaderboard button before Quit.
+	var btn_leaderboard := Button.new()
+	btn_leaderboard.name = "BtnLeaderboard"
+	btn_leaderboard.text = "Leaderboard"
+	btn_leaderboard.pressed.connect(_on_leaderboard)
+	var vbox := $VBoxContainer
+	vbox.add_child(btn_leaderboard)
+	vbox.move_child(btn_leaderboard, $VBoxContainer/BtnQuit.get_index())
 
 
 func _on_new_game() -> void:
@@ -47,6 +57,16 @@ func _on_load_slot_selected(slot: int) -> void:
 
 func _on_settings() -> void:
 	SceneManager.go_to_settings()
+
+
+func _on_leaderboard() -> void:
+	if _leaderboard_overlay == null or not is_instance_valid(_leaderboard_overlay):
+		_leaderboard_overlay = LeaderboardOverlay.new()
+		_leaderboard_overlay.name = "LeaderboardOverlay"
+		add_child(_leaderboard_overlay)
+	else:
+		_leaderboard_overlay.queue_free()
+		_leaderboard_overlay = null
 
 
 func _on_quit() -> void:

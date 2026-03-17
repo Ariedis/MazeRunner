@@ -9,6 +9,13 @@ var _is_frozen: bool = false
 ## Cooldown timer (seconds) to prevent immediate re-clash after separation.
 var _clash_cooldown: float = 0.0
 
+## Speed multiplier from power-ups (1.8x) or traps (0.4x). Reverts to 1.0 when timer expires.
+var _speed_multiplier: float = 1.0
+var _speed_timer: float = 0.0
+
+## Freeze timer from maze hazards (dead-end traps). Counts down to 0.
+var _hazard_freeze_timer: float = 0.0
+
 
 func setup(tile_size: int) -> void:
 	var shape := CircleShape2D.new()
@@ -36,6 +43,19 @@ func _physics_process(delta: float) -> void:
 	if _clash_cooldown > 0.0:
 		_clash_cooldown -= delta
 
+	# Tick speed effect timer.
+	if _speed_timer > 0.0:
+		_speed_timer -= delta
+		if _speed_timer <= 0.0:
+			_speed_multiplier = 1.0
+
+	# Tick hazard freeze timer.
+	if _hazard_freeze_timer > 0.0:
+		_hazard_freeze_timer -= delta
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
 	if GameState.match_state.get("is_paused", false) or _is_frozen:
 		velocity = Vector2.ZERO
 		# Energy does not drain or regen while paused or during a clash penalty.
@@ -50,7 +70,7 @@ func _physics_process(delta: float) -> void:
 	var moving := input_dir != Vector2.ZERO
 
 	if moving:
-		velocity = input_dir.normalized() * stats.current_speed()
+		velocity = input_dir.normalized() * stats.current_speed() * _speed_multiplier
 		stats.drain(delta)
 	else:
 		velocity = Vector2.ZERO

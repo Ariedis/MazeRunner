@@ -48,6 +48,10 @@
 | HUD & Game UI | [spec](specs/hud.md) | 9 |
 | Mid-Maze Save/Load | [spec](specs/save-load.md) | 10 |
 | Custom Tasks & Items | [spec](specs/custom-content.md) | 11 |
+| Power-ups | [spec](specs/power-ups.md) | — |
+| Traps | [spec](specs/traps.md) | — |
+| Leaderboard | [spec](specs/leaderboard.md) | — |
+| Maze Hazards | [spec](specs/maze-hazards.md) | — |
 
 ---
 

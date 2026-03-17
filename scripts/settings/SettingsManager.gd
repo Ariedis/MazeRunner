@@ -52,6 +52,9 @@ func get_all_settings() -> Dictionary:
 
 ## Apply display settings to the window.
 func apply_settings() -> void:
+	# Skip window manipulation when running embedded inside the Godot editor.
+	if OS.has_feature("editor"):
+		return
 	var fullscreen: bool = _settings.get("fullscreen", false)
 	if fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)

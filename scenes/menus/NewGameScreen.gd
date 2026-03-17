@@ -17,6 +17,11 @@ var _selected_avatar: int = 0
 var _num_opponents: int = 1
 var _selected_item_id: String = ""
 
+var _enable_powerups: bool = false
+var _enable_traps: bool = false
+var _enable_leaderboard: bool = false
+var _enable_hazards: bool = false
+
 var _map_size_buttons: Array = []
 var _avatar_buttons: Array = []
 var _label_size_value: Label
@@ -49,9 +54,9 @@ func _build_ui() -> void:
 	var panel := Panel.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -340
-	panel.offset_top = -290
+	panel.offset_top = -340
 	panel.offset_right = 340
-	panel.offset_bottom = 290
+	panel.offset_bottom = 340
 	add_child(panel)
 
 	var scroll := ScrollContainer.new()
@@ -183,6 +188,37 @@ func _build_ui() -> void:
 
 	vbox.add_child(_hsep())
 
+	# Game Options
+	vbox.add_child(_section_label("Game Options:"))
+	var options_grid := GridContainer.new()
+	options_grid.columns = 2
+	options_grid.add_theme_constant_override("h_separation", 24)
+	options_grid.add_theme_constant_override("v_separation", 6)
+
+	var chk_powerups := CheckBox.new()
+	chk_powerups.text = "Power-ups"
+	chk_powerups.toggled.connect(func(on: bool) -> void: _enable_powerups = on)
+	options_grid.add_child(chk_powerups)
+
+	var chk_traps := CheckBox.new()
+	chk_traps.text = "Traps"
+	chk_traps.toggled.connect(func(on: bool) -> void: _enable_traps = on)
+	options_grid.add_child(chk_traps)
+
+	var chk_leaderboard := CheckBox.new()
+	chk_leaderboard.text = "Leaderboard"
+	chk_leaderboard.toggled.connect(func(on: bool) -> void: _enable_leaderboard = on)
+	options_grid.add_child(chk_leaderboard)
+
+	var chk_hazards := CheckBox.new()
+	chk_hazards.text = "Maze Hazards"
+	chk_hazards.toggled.connect(func(on: bool) -> void: _enable_hazards = on)
+	options_grid.add_child(chk_hazards)
+
+	vbox.add_child(options_grid)
+
+	vbox.add_child(_hsep())
+
 	# Error label
 	_label_error = Label.new()
 	_label_error.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
@@ -265,6 +301,10 @@ func _on_start_game() -> void:
 		"item_id": _selected_item_id,
 		"seed": 0,
 		"avatar_id": _selected_avatar,
+		"enable_powerups": _enable_powerups,
+		"enable_traps": _enable_traps,
+		"enable_leaderboard": _enable_leaderboard,
+		"enable_hazards": _enable_hazards,
 	}
 	if not NewGameConfig.validate(config):
 		_label_error.text = "Please select an item before starting."
