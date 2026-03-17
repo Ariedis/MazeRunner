@@ -25,6 +25,7 @@ Enums="*res://scripts/autoloads/Enums.gd"
 SignalBus="*res://scripts/autoloads/SignalBus.gd"
 GameState="*res://scripts/autoloads/GameState.gd"
 SceneManager="*res://scripts/autoloads/SceneManager.gd"
+SaveManager="*res://scripts/save/SaveManager.gd"
 
 [display]
 

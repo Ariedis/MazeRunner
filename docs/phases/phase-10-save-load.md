@@ -1,12 +1,12 @@
 # Phase 10: Save & Load System
 
-## Status: NOT STARTED
+## Status: COMPLETE
 
 ## Goal
 Implement mid-maze save and load with multiple save slots.
 
 ## Tasks
-- [ ] Define save data schema (JSON or Godot Resource):
+- [x] Define save data schema (JSON or Godot Resource):
   - Maze seed + generation parameters
   - Player position, stats, inventory, explored cells
   - AI positions, stats, inventory, internal state
@@ -14,15 +14,15 @@ Implement mid-maze save and load with multiple save slots.
   - Exit position and discovery state
   - Game config (map size, difficulty, etc.)
   - Timestamp and slot metadata
-- [ ] Implement save serialization
-- [ ] Implement save deserialization / game state reconstruction
-- [ ] Save to file system (user data directory)
-- [ ] Multiple save slots
-- [ ] Save from pause menu
-- [ ] Load Game screen: list saves with metadata (date, map size, progress)
-- [ ] Continue button: load most recent save
-- [ ] Delete save option
-- [ ] Handle corrupt/incompatible save files gracefully
+- [x] Implement save serialization
+- [x] Implement save deserialization / game state reconstruction
+- [x] Save to file system (user data directory)
+- [x] Multiple save slots
+- [x] Save from pause menu
+- [x] Load Game screen: list saves with metadata (date, map size, progress)
+- [x] Continue button: load most recent save
+- [x] Delete save option
+- [x] Handle corrupt/incompatible save files gracefully
 
 ## Dependencies
 - Phase 1 (global state)
@@ -38,11 +38,11 @@ Implement mid-maze save and load with multiple save slots.
 - Corrupt saves handled gracefully
 
 ## Testing Criteria
-- [ ] Save captures complete game state
-- [ ] Load restores game to exact saved state (player pos, stats, fog, AI)
-- [ ] Multiple save slots work independently
-- [ ] Continue loads the most recent save
-- [ ] Corrupt save file shows error, doesn't crash
-- [ ] Save file size reasonable for Large maps
-- [ ] Load time acceptable (<2s)
-- [ ] Saving during task/clash overlay works correctly
+- [x] Save captures complete game state
+- [x] Load restores game to exact saved state (player pos, stats, fog, AI)
+- [x] Multiple save slots work independently
+- [x] Continue loads the most recent save
+- [x] Corrupt save file shows error, doesn't crash
+- [x] Save file size reasonable for Large maps
+- [x] Load time acceptable (<2s)
+- [x] Saving during task/clash overlay works correctly

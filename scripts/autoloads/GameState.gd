@@ -54,14 +54,43 @@ func reset_for_new_game() -> void:
 	SignalBus.game_config_changed.emit()
 
 
-## Returns true when a save file exists. Phase 10 will implement actual file checks.
+## Holds save data to be applied when loading a game scene.
+var _pending_save_data: Variant = null
+
+
+## Returns true when at least one save file exists.
 func has_save_data() -> bool:
-	return false
+	return SaveManager.has_any_save()
 
 
-func apply_save_data(data: Dictionary) -> void:
-	# Stub for Phase 10 SaveSystem
-	pass
+## Queues save data for application after the game scene loads.
+func queue_load(save_dict: Dictionary) -> void:
+	var data: Dictionary = save_dict.get("data", {})
+	# Restore config so maze generation uses the same seed/size.
+	if data.has("config"):
+		config = data["config"].duplicate(true)
+	# Restore player baseline for Player.setup() to pick up.
+	if data.has("player"):
+		var p: Dictionary = data["player"]
+		player["avatar_id"] = p.get("avatar_id", 0)
+		player["size"] = p.get("size", 1)
+		player["energy"] = p.get("energy", 100.0)
+		player["has_item"] = p.get("has_item", false)
+		player["item_id"] = p.get("item_id", "")
+		player["explored_cells"] = []
+	match_state = {
+		"locations_completed": [],
+		"opponents": [],
+		"is_paused": false,
+	}
+	_pending_save_data = data
+
+
+## Returns and clears pending save data, or null if none.
+func take_pending_save_data() -> Variant:
+	var data = _pending_save_data
+	_pending_save_data = null
+	return data
 
 
 func is_in_match() -> bool:

@@ -20,6 +20,7 @@ var _clash_active: bool = false
 var _clash_rng: RandomNumberGenerator
 var _hud: GameHUD
 var _pause_menu: PauseMenu
+var _save_slot_panel: SaveSlotPanel
 
 
 func _ready() -> void:
@@ -128,11 +129,22 @@ func _ready() -> void:
 	_pause_menu.save_requested.connect(_on_pause_save)
 	_pause_menu.quit_to_menu_requested.connect(SceneManager.go_to_main_menu)
 
+	# Save slot panel (shared for save UI)
+	_save_slot_panel = SaveSlotPanel.new(SaveSlotPanel.Mode.SAVE)
+	_save_slot_panel.name = "SaveSlotPanel"
+	add_child(_save_slot_panel)
+	_save_slot_panel.slot_selected.connect(_on_save_slot_selected)
+
 	SignalBus.player_energy_changed.connect(_on_player_energy_changed)
 	SignalBus.player_item_collected.connect(_on_player_item_collected)
 	GameState.current_state = Enums.GameState.IN_GAME
 
 	_start_time_msec = Time.get_ticks_msec()
+
+	# If loading from a save, apply saved state now.
+	var save_data = GameState.take_pending_save_data()
+	if save_data != null:
+		_apply_save_data(save_data)
 
 
 func _process(_delta: float) -> void:
@@ -302,8 +314,122 @@ func _on_pause_resume() -> void:
 
 
 func _on_pause_save() -> void:
-	# Phase 10: trigger save system
-	pass
+	_save_slot_panel.show_panel()
+
+
+func _on_save_slot_selected(slot: int) -> void:
+	var elapsed := Time.get_ticks_msec() - _start_time_msec
+	var data := SaveManager.capture_game_state(
+		_maze_data, _player, _fog, _location_manager,
+		_ai_opponents, elapsed, _renderer, _clash_active
+	)
+	var success := SaveManager.save_game(slot, data)
+	if success:
+		_hud.show_rejection_message("Game saved!")
+	else:
+		_hud.show_rejection_message("Save failed!")
+
+
+## Restores full game state from a loaded save dictionary.
+func _apply_save_data(data: Dictionary) -> void:
+	# Restore elapsed time offset
+	var saved_elapsed: int = data.get("elapsed_msec", 0)
+	_start_time_msec = Time.get_ticks_msec() - saved_elapsed
+
+	# Restore player position
+	var player_data: Dictionary = data.get("player", {})
+	if player_data.has("position"):
+		_player.global_position = SaveManager.arr_to_v2(player_data["position"])
+	_player.stats.size = player_data.get("size", 1)
+	_player.stats.energy = player_data.get("energy", 100.0)
+	_player._clash_cooldown = player_data.get("clash_cooldown", 0.0)
+	GameState.player["size"] = _player.stats.size
+	GameState.player["energy"] = _player.stats.energy
+	GameState.player["has_item"] = player_data.get("has_item", false)
+	GameState.player["item_id"] = player_data.get("item_id", "")
+	_hud.update_size(_player.stats.size)
+	_hud.update_energy(_player.stats.energy)
+	if GameState.player["has_item"]:
+		_hud.show_item_collected()
+
+	# Restore fog of war from explored cells
+	var explored_cells: Array = player_data.get("explored_cells", [])
+	var fog_cells: Array = []
+	for cell_arr in explored_cells:
+		fog_cells.append(SaveManager.arr_to_v2i(cell_arr))
+	_fog.load_from_array(fog_cells)
+	_fog_renderer.reveal_cells(fog_cells)
+	GameState.player["explored_cells"] = _fog.get_explored_array()
+
+	# Restore location states
+	var locs_data: Array = data.get("locations", [])
+	for loc_save in locs_data:
+		var loc_id: int = loc_save.get("id", -1)
+		var loc := _location_manager.get_location_by_id(loc_id)
+		if loc == null:
+			continue
+		loc.completed = loc_save.get("completed", false)
+		loc.completed_by = loc_save.get("completed_by", [])
+		if loc.completed:
+			GameState.match_state["locations_completed"].append(loc_id)
+			# Update marker to green
+			if _location_markers.has(loc_id):
+				var poly := _location_markers[loc_id].get_child(0) as Polygon2D
+				if poly:
+					poly.color = Color(0.2, 0.9, 0.2)
+
+	# Restore AI opponents
+	var opponents_data: Array = data.get("opponents", [])
+	for i in min(opponents_data.size(), _ai_opponents.size()):
+		var opp_data: Dictionary = opponents_data[i]
+		var ai: AIOpponent = _ai_opponents[i]
+
+		if opp_data.has("position"):
+			ai.global_position = SaveManager.arr_to_v2(opp_data["position"])
+		ai.stats.size = opp_data.get("size", 1)
+		ai.stats.energy = opp_data.get("energy", 100.0)
+		ai._clash_cooldown = opp_data.get("clash_cooldown", 0.0)
+
+		var brain: AIBrain = ai.brain
+		brain.has_item = opp_data.get("has_item", false)
+		brain.state = opp_data.get("state", AIBrain.State.EXPLORE)
+		brain.exit_known = opp_data.get("exit_known", false)
+		if opp_data.has("exit_pos"):
+			brain.exit_pos = SaveManager.arr_to_v2i(opp_data["exit_pos"])
+		brain.penalty_timer = opp_data.get("penalty_timer", 0.0)
+		brain.task_timer = opp_data.get("task_timer", 0.0)
+		brain._pre_rest_state = opp_data.get("_pre_rest_state", AIBrain.State.EXPLORE)
+		brain._pre_penalty_state = opp_data.get("_pre_penalty_state", AIBrain.State.EXPLORE)
+		brain._rest_threshold = opp_data.get("_rest_threshold", 20.0)
+		brain._rest_target = opp_data.get("_rest_target", 50.0)
+
+		if opp_data.has("_item_loc_pos"):
+			brain._item_loc_pos = SaveManager.arr_to_v2i(opp_data["_item_loc_pos"])
+		if opp_data.has("_current_task_pos"):
+			brain._current_task_pos = SaveManager.arr_to_v2i(opp_data["_current_task_pos"])
+		if opp_data.has("_current_target"):
+			brain._current_target = SaveManager.arr_to_v2i(opp_data["_current_target"])
+
+		# Restore explored cells
+		brain.explored.clear()
+		var ai_explored: Array = opp_data.get("explored_cells", [])
+		for cell_arr in ai_explored:
+			brain.explored[SaveManager.arr_to_v2i(cell_arr)] = true
+
+		# Restore known uncompleted locations
+		brain.known_uncompleted_locs.clear()
+		var known_locs: Array = opp_data.get("known_uncompleted_locs", [])
+		for loc_arr in known_locs:
+			brain.known_uncompleted_locs.append(SaveManager.arr_to_v2i(loc_arr))
+
+		# Restore current path
+		brain.current_path.clear()
+		var path_arr: Array = opp_data.get("current_path", [])
+		for p in path_arr:
+			brain.current_path.append(SaveManager.arr_to_v2i(p))
+
+	# Force grid cell recheck on next frame
+	_last_grid_cell = Vector2i(-1, -1)
 
 
 ## Proximity-based clash detection. Called every frame from _process.
