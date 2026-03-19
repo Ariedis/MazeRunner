@@ -13,12 +13,13 @@ extends RefCounted
 ##     {"title": "...", "description": "...", "duration_seconds": 30, "category": "yoga", "media_path": ""}
 ##   ],
 ##   "penalties": [
-##     {"exercise": "...", "reps": 10, "category": "yoga", "media_path": ""}
+##     {"exercise": "...", "reps": 10, "category": "yoga", "media_paths": ["squat.gif", "squat2.mp4"]}
 ##   ],
 ##   "items": [
 ##     {"name": "...", "icon_path": ""}
 ##   ]
 ## }
+## Note: penalties also accept a single "media_path" string for backward compatibility.
 
 
 ## Result of loading a content pack.
@@ -93,9 +94,15 @@ static func load_pack(path: String) -> LoadResult:
 			if entry is Dictionary:
 				var exercise: String = str(entry.get("exercise", ""))
 				var reps: int = int(entry.get("reps", 10))
-				var media: String = str(entry.get("media_path", ""))
 				var category: String = str(entry.get("category", ""))
-				var err := mgr.add_custom_penalty(exercise, reps, media, category)
+				# Support media_paths array or legacy media_path string
+				var media_paths: Array = []
+				if entry.has("media_paths") and entry["media_paths"] is Array:
+					for p in entry["media_paths"]:
+						media_paths.append(str(p))
+				elif entry.has("media_path") and str(entry["media_path"]) != "":
+					media_paths.append(str(entry["media_path"]))
+				var err := mgr.add_custom_penalty(exercise, reps, media_paths, category)
 				if err == "":
 					result.penalties_added += 1
 

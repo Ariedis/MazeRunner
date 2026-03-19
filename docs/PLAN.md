@@ -23,6 +23,7 @@
 | 10 | Save & Load System | COMPLETE | [spec](phases/phase-10-save-load.md) |
 | 11 | Settings & Customization | COMPLETE | [spec](phases/phase-11-settings.md) |
 | 12 | Polish & Integration | COMPLETE | [spec](phases/phase-12-polish.md) |
+| 13 | Power-ups, Traps, Leaderboard & Hazards | COMPLETE | [spec](phases/phase-13-extra-features.md) |
 
 ---
 
@@ -48,10 +49,10 @@
 | HUD & Game UI | [spec](specs/hud.md) | 9 |
 | Mid-Maze Save/Load | [spec](specs/save-load.md) | 10 |
 | Custom Tasks & Items | [spec](specs/custom-content.md) | 11 |
-| Power-ups | [spec](specs/power-ups.md) | — |
-| Traps | [spec](specs/traps.md) | — |
-| Leaderboard | [spec](specs/leaderboard.md) | — |
-| Maze Hazards | [spec](specs/maze-hazards.md) | — |
+| Power-ups | [spec](specs/power-ups.md) | 13 |
+| Traps | [spec](specs/traps.md) | 13 |
+| Leaderboard | [spec](specs/leaderboard.md) | 13 |
+| Maze Hazards | [spec](specs/maze-hazards.md) | 13 |
 
 ---
 
@@ -78,12 +79,10 @@
 
 - **Polish & Integration (Phase 12):** Fixed exit interaction double-win bug (`_handle_exit_interaction` now sets `_match_over = true` and guards against re-entry). `WinConditionManager` gained a `_resolved` flag preventing duplicate `match_ended` signals when multiple AI reach the exit simultaneously. Added `_pending_ai_clashes` queue in `GameScene` — AI-AI clashes detected during an active player-AI clash overlay are deferred and resolved after the overlay closes. Save-during-overlay guard added to `_on_pause_save()` (explicit check for `_match_over`, `_clash_active`, `_task_overlay.visible`). Comprehensive integration test suite (`test_polish.gd`, 34 tests) validates the complete game loop, edge cases, settings persistence, and custom content integration.
 
+- **Phase 13 (Power-ups, Traps, Leaderboard & Hazards):** Four independently scoped systems added on top of the Phase 12 baseline. `PowerupManager` (Node2D child of GameScene) spawns 3/6/10 collectibles per map size, deterministic via `seed_val + 100`, with diamond visuals colour-coded by type (cyan/green/magenta). `TrapManager` (Node2D child of GameScene) gives the player 2/3/5 traps (Space bar to place); traps are hidden until an opponent steps on them, then apply 0.4x speed for 4 s and are consumed. `LeaderboardManager` is a new autoload that writes `user://leaderboard.json` independently of save slots; top-10 entries per map size sorted by time; `LeaderboardOverlay` (CanvasLayer z=25) is accessible from MainMenu and ResultsScreen. `HazardManager` (Node2D child of GameScene) generates dead-end traps (30% of eligible dead ends, −25 energy + 2 s freeze, single-trigger), teleporter pairs (1/2/3 per map size, zero-cost A* edges, 1 s cooldown), and one-way doors (2/4/6 per map size, asymmetric wall data with pathfinding validation to ensure all spawns can reach exit); all seeded via `seed_val + 200`. Only triggered dead-end positions are saved (hazards otherwise regenerate from seed). All four managers implement `save_state()`/`load_state()` to participate in the existing `SaveManager` serialisation flow. Enums additions: `PowerupType`, `POWERUP_*`, `TRAP_*`, `HAZARD_*` constants.
+
 ### Suggested Additional Features (Future)
-- **Power-ups:** Temporary speed boost, energy refill, reveal nearby area
-- **Traps:** Placeable by players to slow opponents
 - **Spectator mode:** Watch AI opponents after completing your run
 - **Maze themes/biomes:** Visual variety per map section
-- **Leaderboard:** Track best completion times per map size
 - **Multiplayer (local/online):** Replace AI with human opponents
 - **Difficulty modifiers:** Fog density, task time limits, clash frequency
-- **Maze hazards:** Dead-end traps, teleporters, one-way doors

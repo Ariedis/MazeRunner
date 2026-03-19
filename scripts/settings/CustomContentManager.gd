@@ -226,8 +226,8 @@ func get_custom_penalties() -> Array:
 
 
 ## Add a custom penalty. Returns "" on success, or error message.
-func add_custom_penalty(exercise: String, reps: int, media_path: String = "", category: String = "") -> String:
-	var err := validate_penalty(exercise, reps, media_path)
+func add_custom_penalty(exercise: String, reps: int, media_paths: Array = [], category: String = "") -> String:
+	var err := validate_penalty(exercise, reps, media_paths)
 	if err != "":
 		return err
 
@@ -237,7 +237,7 @@ func add_custom_penalty(exercise: String, reps: int, media_path: String = "", ca
 		"id": id,
 		"exercise": exercise,
 		"reps": reps,
-		"media_path": media_path,
+		"media_paths": media_paths,
 		"category": category,
 	}
 	penalties.append(entry)
@@ -246,8 +246,8 @@ func add_custom_penalty(exercise: String, reps: int, media_path: String = "", ca
 
 
 ## Update an existing custom penalty by id.
-func update_custom_penalty(id: String, exercise: String, reps: int, media_path: String = "", category: String = "") -> String:
-	var err := validate_penalty(exercise, reps, media_path)
+func update_custom_penalty(id: String, exercise: String, reps: int, media_paths: Array = [], category: String = "") -> String:
+	var err := validate_penalty(exercise, reps, media_paths)
 	if err != "":
 		return err
 
@@ -256,7 +256,8 @@ func update_custom_penalty(id: String, exercise: String, reps: int, media_path: 
 		if penalties[i].get("id", "") == id:
 			penalties[i]["exercise"] = exercise
 			penalties[i]["reps"] = reps
-			penalties[i]["media_path"] = media_path
+			penalties[i]["media_paths"] = media_paths
+			penalties[i].erase("media_path")  # Remove legacy field if present
 			penalties[i]["category"] = category
 			_save_json_array(PENALTIES_PATH, "penalties", penalties)
 			return ""
@@ -275,7 +276,7 @@ func remove_custom_penalty(id: String) -> bool:
 
 
 ## Validate penalty fields. Returns "" if valid, or error message.
-func validate_penalty(exercise: String, reps: int, media_path: String = "") -> String:
+func validate_penalty(exercise: String, reps: int, media_paths: Array = []) -> String:
 	if exercise.strip_edges().is_empty():
 		return "Exercise name is required"
 	if exercise.length() > MAX_TITLE_LENGTH:
@@ -284,10 +285,12 @@ func validate_penalty(exercise: String, reps: int, media_path: String = "") -> S
 		return "Reps must be at least %d" % MIN_REPS
 	if reps > MAX_REPS:
 		return "Reps must be at most %d" % MAX_REPS
-	if media_path != "":
-		var ext := media_path.get_extension().to_lower()
-		if ext not in VALID_MEDIA_EXTENSIONS:
-			return "Media must be gif, mp4, or webm"
+	for media_path in media_paths:
+		var path := str(media_path)
+		if path != "":
+			var ext := path.get_extension().to_lower()
+			if ext not in VALID_MEDIA_EXTENSIONS:
+				return "Media must be gif, mp4, or webm"
 	return ""
 
 

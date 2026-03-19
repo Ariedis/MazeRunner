@@ -8,6 +8,15 @@ const DEFAULT_TASK: Dictionary = {
 	"media_path": "",
 }
 
+
+## Picks a random media path from a penalty dictionary.
+## Supports media_paths array (new) and media_path string (legacy).
+static func _pick_media_path(p: Dictionary) -> String:
+	if p.has("media_paths") and p["media_paths"] is Array and not p["media_paths"].is_empty():
+		var paths: Array = p["media_paths"]
+		return str(paths[randi() % paths.size()])
+	return str(p.get("media_path", ""))
+
 ## Path in the user data directory for a custom clash penalty task.
 const USER_TASK_PATH: String = "user://clash_tasks.json"
 
@@ -39,7 +48,7 @@ static func load_active_task(category: String = "") -> Dictionary:
 			return {
 				"exercise": str(p["exercise"]),
 				"reps": int(p["reps"]),
-				"media_path": str(p.get("media_path", "")),
+				"media_path": _pick_media_path(p),
 			}
 
 	# Legacy: single custom task file
